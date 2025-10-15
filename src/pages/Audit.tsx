@@ -99,49 +99,73 @@ const Audit = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({
+          title: "Authentification requise",
+          description: "Veuillez vous connecter pour démarrer l'audit",
+          variant: "destructive"
+        });
+        navigate("/auth");
+        return;
+      }
 
       // Create company
       const { data: company, error: companyError } = await supabase
         .from("audited_companies")
         .insert({
-          name: companyInfo.name,
-          sector: companyInfo.sector,
-          size: companyInfo.size,
-          contact_name: companyInfo.contactName,
-          contact_email: companyInfo.contactEmail,
-          contact_phone: companyInfo.contactPhone,
-          created_by: user?.id
+          name: companyInfo.name.trim(),
+          sector: companyInfo.sector.trim(),
+          size: companyInfo.size.trim(),
+          contact_name: companyInfo.contactName.trim(),
+          contact_email: companyInfo.contactEmail.trim(),
+          contact_phone: companyInfo.contactPhone.trim(),
+          created_by: user.id
         })
         .select()
         .single();
 
-      if (companyError) throw companyError;
+      if (companyError) {
+        console.error("Company creation error:", companyError);
+        throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
+      }
 
       // Create audit
       const { data: audit, error: auditError } = await supabase
         .from("audits")
         .insert({
           company_id: company.id,
-          created_by: user?.id,
-          current_sector: sectors[0]?.name,
+          created_by: user.id,
+          current_sector: sectors[0]?.name || 'digitalisation',
           status: "in_progress"
         })
         .select()
         .single();
 
-      if (auditError) throw auditError;
+      if (auditError) {
+        console.error("Audit creation error:", auditError);
+        throw new Error(`Erreur lors de la création de l'audit: ${auditError.message}`);
+      }
 
       setAuditId(audit.id);
       setShowCompanyForm(false);
-    } catch (error) {
+      
+      toast({
+        title: "Succès",
+        description: "Audit démarré avec succès"
+      });
+    } catch (error: any) {
       console.error("Error starting audit:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de démarrer l'audit",
+        description: error.message || "Impossible de démarrer l'audit. Veuillez réessayer.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -312,8 +336,13 @@ const Audit = () => {
                   onChange={(e) => setCompanyInfo({ ...companyInfo, contactPhone: e.target.value })}
                 />
               </div>
-              <Button onClick={startAudit} className="w-full" size="lg">
-                Commencer l'audit
+              <Button 
+                onClick={startAudit} 
+                className="w-full" 
+                size="lg"
+                disabled={isLoading}
+              >
+                {isLoading ? "Démarrage..." : "Commencer l'audit"}
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </CardContent>
