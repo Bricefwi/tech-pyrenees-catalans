@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_criteria: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          max_score: number
+          name: string
+          order_index: number
+          sector_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          max_score?: number
+          name: string
+          order_index: number
+          sector_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          max_score?: number
+          name?: string
+          order_index?: number
+          sector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_criteria_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "audit_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_questions: {
+        Row: {
+          created_at: string | null
+          criterion_id: string
+          id: string
+          options: Json | null
+          order_index: number
+          question_text: string
+          question_type: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          criterion_id: string
+          id?: string
+          options?: Json | null
+          order_index: number
+          question_text: string
+          question_type?: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          criterion_id?: string
+          id?: string
+          options?: Json | null
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_questions_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "audit_criteria"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_recommendations: {
         Row: {
           audit_id: string
@@ -98,6 +177,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      audit_sectors: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          order_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          order_index: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+        }
+        Relationships: []
       }
       audited_companies: {
         Row: {
