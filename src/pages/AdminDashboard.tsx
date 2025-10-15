@@ -81,7 +81,7 @@ const AdminDashboard = () => {
   };
 
   const loadDashboardData = async () => {
-    // Charger les demandes avec les profils corrects
+    // Charger les demandes avec les profils, devis et dates d'intervention
     const { data: requestsData } = await supabase
       .from("service_requests")
       .select(`
@@ -92,6 +92,19 @@ const AdminDashboard = () => {
           phone,
           first_name,
           last_name
+        ),
+        quotes (
+          id,
+          quote_number,
+          amount,
+          status,
+          created_at,
+          sent_at
+        ),
+        intervention_dates (
+          id,
+          scheduled_date,
+          status
         )
       `)
       .order("created_at", { ascending: false });
@@ -340,6 +353,43 @@ const AdminDashboard = () => {
                     </div>
                   )}
 
+                  {/* Affichage du devis s'il existe */}
+                  {request.quotes && request.quotes.length > 0 && (
+                    <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
+                      <p className="text-sm font-medium mb-1">Devis envoyé</p>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-mono">{request.quotes[0].quote_number}</span>
+                        <span className="font-semibold">{request.quotes[0].amount}€</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={request.quotes[0].status === 'accepted' ? 'default' : 'secondary'}>
+                          {request.quotes[0].status === 'accepted' ? 'Accepté' : 
+                           request.quotes[0].status === 'rejected' ? 'Refusé' : 'En attente'}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Envoyé le {format(new Date(request.quotes[0].sent_at || request.quotes[0].created_at), "d MMM yyyy", { locale: fr })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Affichage de la date d'intervention si elle existe */}
+                  {request.intervention_dates && request.intervention_dates.length > 0 && (
+                    <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
+                      <p className="text-sm font-medium mb-1">Intervention prévue</p>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-semibold">
+                          {format(new Date(request.intervention_dates[0].scheduled_date), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="mt-1">
+                        {request.intervention_dates[0].status === 'completed' ? 'Terminée' :
+                         request.intervention_dates[0].status === 'cancelled' ? 'Annulée' : 'Planifiée'}
+                      </Badge>
+                    </div>
+                  )}
+
                   <div className="flex gap-2 pt-4 border-t">
                     {request.status === "pending" && (
                       <Button 
@@ -365,12 +415,22 @@ const AdminDashboard = () => {
                     >
                       Chat
                     </Button>
+                    {["development", "nocode", "ai", "formation"].includes(request.service_type) && (
+                      <Button 
+                        onClick={() => navigate(`/admin/proposal/${request.id}`)}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        Propositions IA
+                      </Button>
+                    )}
                     <Button 
                       onClick={() => navigate(`/admin/quote/${request.id}`)}
                       size="sm"
                       variant="ghost"
+                      disabled={request.quotes && request.quotes.length > 0 && request.quotes[0].status === 'pending'}
                     >
-                      Devis
+                      {request.quotes && request.quotes.length > 0 ? 'Voir devis' : 'Devis'}
                     </Button>
                     <Button 
                       onClick={() => navigate(`/admin/intervention/${request.id}`)}

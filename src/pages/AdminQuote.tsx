@@ -91,7 +91,23 @@ const AdminQuote = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Insérer le devis
+    // Vérifier s'il existe déjà un devis en attente
+    const { data: existingQuotes } = await supabase
+      .from("quotes")
+      .select("*")
+      .eq("service_request_id", requestId)
+      .eq("status", "pending");
+
+    if (existingQuotes && existingQuotes.length > 0) {
+      toast({
+        title: "Devis déjà envoyé",
+        description: `Un devis (${existingQuotes[0].quote_number}) est déjà en attente de réponse du client.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Insérer le devis avec sent_at
     const { error: quoteError } = await supabase
       .from("quotes")
       .insert({
@@ -101,6 +117,7 @@ const AdminQuote = () => {
         description: formData.description,
         valid_until: formData.valid_until,
         status: "pending",
+        sent_at: new Date().toISOString(),
       });
 
     if (quoteError) {

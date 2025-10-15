@@ -336,6 +336,84 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          amount: number
+          client_user_id: string
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          order_id: string
+          paid_at: string | null
+          payment_method: string | null
+          sent_at: string | null
+          service_request_id: string
+          status: string
+          tax_amount: number | null
+          tax_rate: number | null
+          total_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          client_user_id: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          order_id: string
+          paid_at?: string | null
+          payment_method?: string | null
+          sent_at?: string | null
+          service_request_id: string
+          status?: string
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          client_user_id?: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          order_id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          sent_at?: string | null
+          service_request_id?: string
+          status?: string
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -367,6 +445,75 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "messages_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount: number
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          client_user_id: string
+          completed_at: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          order_number: string | null
+          quote_id: string
+          service_request_id: string
+          started_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_user_id: string
+          completed_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_number?: string | null
+          quote_id: string
+          service_request_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          client_user_id?: string
+          completed_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          order_number?: string | null
+          quote_id?: string
+          service_request_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_service_request_id_fkey"
             columns: ["service_request_id"]
             isOneToOne: false
             referencedRelation: "service_requests"
@@ -442,33 +589,48 @@ export type Database = {
       }
       quotes: {
         Row: {
+          accepted_at: string | null
           amount: number
           created_at: string | null
           created_by: string
           description: string | null
           id: string
+          quote_number: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          sent_at: string | null
           service_request_id: string
           status: string | null
           updated_at: string | null
           valid_until: string | null
         }
         Insert: {
+          accepted_at?: string | null
           amount: number
           created_at?: string | null
           created_by: string
           description?: string | null
           id?: string
+          quote_number?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          sent_at?: string | null
           service_request_id: string
           status?: string | null
           updated_at?: string | null
           valid_until?: string | null
         }
         Update: {
+          accepted_at?: string | null
           amount?: number
           created_at?: string | null
           created_by?: string
           description?: string | null
           id?: string
+          quote_number?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          sent_at?: string | null
           service_request_id?: string
           status?: string | null
           updated_at?: string | null
@@ -670,6 +832,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_quote_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_request_number: {
         Args: Record<PropertyKey, never>
         Returns: string
