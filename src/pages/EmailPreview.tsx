@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AlertCircle, Info } from "lucide-react";
 
 const EmailPreview = () => {
   const [sending, setSending] = useState(false);
@@ -161,7 +163,7 @@ const EmailPreview = () => {
         return;
       }
 
-      const { error } = await supabase.functions.invoke('send-email', {
+      const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           type,
           to: user.email,
@@ -176,12 +178,28 @@ const EmailPreview = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error details:", error);
+        
+        // Vérifier si c'est une erreur Resend de domaine non vérifié
+        if (error.message?.includes("verify a domain") || error.message?.includes("testing emails")) {
+          toast.error("Configuration Resend requise", {
+            description: "Veuillez vérifier un domaine sur resend.com/domains pour envoyer des emails en production"
+          });
+        } else {
+          toast.error("Erreur lors de l'envoi", {
+            description: error.message
+          });
+        }
+        return;
+      }
 
-      toast.success(`Email de test envoyé à ${user.email}`);
-    } catch (error) {
+      toast.success(`Email de test envoyé avec succès à ${user.email}`);
+    } catch (error: any) {
       console.error("Error sending test email:", error);
-      toast.error("Erreur lors de l'envoi de l'email de test");
+      toast.error("Erreur lors de l'envoi de l'email de test", {
+        description: error?.message || "Erreur inconnue"
+      });
     } finally {
       setSending(false);
     }
@@ -198,6 +216,22 @@ const EmailPreview = () => {
             </p>
           </CardHeader>
         </Card>
+
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Mode test Resend :</strong> Les emails de test sont envoyés uniquement à votre adresse email connectée.
+            Pour envoyer des emails à vos clients, vous devez vérifier un domaine sur{" "}
+            <a 
+              href="https://resend.com/domains" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline font-medium"
+            >
+              resend.com/domains
+            </a>
+          </AlertDescription>
+        </Alert>
 
         <Tabs defaultValue="confirmation" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
