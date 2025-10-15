@@ -81,12 +81,18 @@ const AdminDashboard = () => {
   };
 
   const loadDashboardData = async () => {
-    // Charger les demandes
+    // Charger les demandes avec les profils corrects
     const { data: requestsData } = await supabase
       .from("service_requests")
       .select(`
         *,
-        profiles:client_user_id (full_name, email, phone)
+        profiles:client_user_id (
+          full_name,
+          email,
+          phone,
+          first_name,
+          last_name
+        )
       `)
       .order("created_at", { ascending: false });
 

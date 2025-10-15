@@ -91,7 +91,8 @@ const AdminQuote = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
+    // Insérer le devis
+    const { error: quoteError } = await supabase
       .from("quotes")
       .insert({
         service_request_id: requestId,
@@ -102,7 +103,7 @@ const AdminQuote = () => {
         status: "pending",
       });
 
-    if (error) {
+    if (quoteError) {
       toast({
         title: "Erreur",
         description: "Impossible de créer le devis",
@@ -111,9 +112,26 @@ const AdminQuote = () => {
       return;
     }
 
+    // Mettre à jour le statut de la demande
+    const { error: updateError } = await supabase
+      .from("service_requests")
+      .update({ 
+        quote_status: "quote_sent",
+        status: "in_progress"
+      })
+      .eq("id", requestId);
+
+    if (updateError) {
+      toast({
+        title: "Avertissement",
+        description: "Devis créé mais impossible de mettre à jour le statut",
+        variant: "destructive",
+      });
+    }
+
     toast({
       title: "Succès",
-      description: "Devis créé avec succès",
+      description: "Devis envoyé au client",
     });
 
     navigate("/admin");

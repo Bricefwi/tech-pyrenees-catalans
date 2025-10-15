@@ -567,6 +567,7 @@ export type Database = {
           priority: string
           profile_id: string | null
           proposed_date: string | null
+          quote_status: string | null
           service_type: string
           status: string
           title: string
@@ -588,6 +589,7 @@ export type Database = {
           priority?: string
           profile_id?: string | null
           proposed_date?: string | null
+          quote_status?: string | null
           service_type: string
           status?: string
           title: string
@@ -609,6 +611,7 @@ export type Database = {
           priority?: string
           profile_id?: string | null
           proposed_date?: string | null
+          quote_status?: string | null
           service_type?: string
           status?: string
           title?: string
