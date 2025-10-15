@@ -197,6 +197,16 @@ Sois concret, propose des formats adaptés, identifie les besoins de montée en 
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour créer une demande",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
     // Pour les services digitaux, encourager (mais ne pas bloquer) la génération du CDC
     const isDigitalService = ["development", "nocode", "ai", "formation"].includes(serviceType);
     if (isDigitalService && messages.length > 3 && !specifications) {
