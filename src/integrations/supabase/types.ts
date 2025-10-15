@@ -14,6 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_recommendations: {
+        Row: {
+          audit_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: string | null
+          sector: string
+          title: string
+          tools_suggested: Json | null
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          sector: string
+          title: string
+          tools_suggested?: Json | null
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          sector?: string
+          title?: string
+          tools_suggested?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_recommendations_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_responses: {
+        Row: {
+          audit_id: string
+          created_at: string | null
+          criterion: string
+          id: string
+          question_id: string
+          question_text: string
+          response: string | null
+          score: number | null
+          sector: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string | null
+          criterion: string
+          id?: string
+          question_id: string
+          question_text: string
+          response?: string | null
+          score?: number | null
+          sector: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string | null
+          criterion?: string
+          id?: string
+          question_id?: string
+          question_text?: string
+          response?: string | null
+          score?: number | null
+          sector?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_responses_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audited_companies: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          sector: string
+          size: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          sector: string
+          size?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          sector?: string
+          size?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      audits: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          current_question_index: number | null
+          current_sector: string | null
+          global_score: number | null
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_question_index?: number | null
+          current_sector?: string | null
+          global_score?: number | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          current_question_index?: number | null
+          current_sector?: string | null
+          global_score?: number | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "audited_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_conversations: {
         Row: {
           ai_summary: string | null
@@ -207,6 +378,41 @@ export type Database = {
             columns: ["service_request_id"]
             isOneToOne: false
             referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_scores: {
+        Row: {
+          audit_id: string
+          created_at: string | null
+          id: string
+          max_score: number
+          score: number
+          sector: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string | null
+          id?: string
+          max_score: number
+          score: number
+          sector: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string | null
+          id?: string
+          max_score?: number
+          score?: number
+          sector?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_scores_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
             referencedColumns: ["id"]
           },
         ]
