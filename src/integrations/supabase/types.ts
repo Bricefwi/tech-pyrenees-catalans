@@ -14,7 +14,133 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      diagnostic_conversations: {
+        Row: {
+          ai_summary: string | null
+          created_at: string | null
+          id: string
+          messages: Json
+          service_request_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          service_request_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_summary?: string | null
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          service_request_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_conversations_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          is_professional: boolean | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          is_professional?: boolean | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_professional?: boolean | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      service_requests: {
+        Row: {
+          business_sector: string | null
+          created_at: string | null
+          description: string | null
+          device_info: Json | null
+          estimated_cost: number | null
+          estimated_duration: string | null
+          id: string
+          priority: string
+          profile_id: string | null
+          service_type: string
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_sector?: string | null
+          created_at?: string | null
+          description?: string | null
+          device_info?: Json | null
+          estimated_cost?: number | null
+          estimated_duration?: string | null
+          id?: string
+          priority?: string
+          profile_id?: string | null
+          service_type: string
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_sector?: string | null
+          created_at?: string | null
+          description?: string | null
+          device_info?: Json | null
+          estimated_cost?: number | null
+          estimated_duration?: string | null
+          id?: string
+          priority?: string
+          profile_id?: string | null
+          service_type?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
