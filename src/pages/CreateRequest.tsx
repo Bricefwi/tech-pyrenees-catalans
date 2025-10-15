@@ -135,7 +135,10 @@ const CreateRequest = () => {
         description: "Votre demande a été créée avec succès",
       });
 
-      navigate("/client-dashboard");
+      // Redirect après un court délai pour que l'utilisateur voie le message de succès
+      setTimeout(() => {
+        navigate("/client-dashboard");
+      }, 1500);
     } catch (error: any) {
       toast({
         title: "Erreur",

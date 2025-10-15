@@ -21,7 +21,6 @@ const Admin = () => {
 
   useEffect(() => {
     checkAdminAccess();
-    loadServiceRequests();
   }, []);
 
   const checkAdminAccess = async () => {
@@ -37,16 +36,20 @@ const Admin = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .eq("role", "admin")
+        .maybeSingle();
 
-      if (roleData?.role !== "admin") {
+      if (!roleData) {
         toast({
           title: "Accès refusé",
           description: "Vous n'avez pas les droits d'administration",
           variant: "destructive",
         });
         navigate("/");
+        return;
       }
+
+      await loadServiceRequests();
     } catch (error) {
       navigate("/auth");
     } finally {
@@ -119,7 +122,16 @@ const Admin = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
+            <Button 
+              onClick={() => navigate("/admin-dashboard")} 
+              variant="link" 
+              className="p-0 h-auto mt-2"
+            >
+              Accéder au dashboard complet →
+            </Button>
+          </div>
           <Button onClick={handleLogout} variant="outline">
             <LogOut className="mr-2 h-4 w-4" />
             Déconnexion

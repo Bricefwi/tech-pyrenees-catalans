@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import AdminDashboard from "./pages/AdminDashboard";
 import ClientDashboard from "./pages/ClientDashboard";
 import Audit from "./pages/Audit";
 import CreateRequest from "./pages/CreateRequest";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/audit" element={<Audit />} />
           <Route path="/create-request" element={<CreateRequest />} />
