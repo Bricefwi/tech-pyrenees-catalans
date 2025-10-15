@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.send-email]
 verify_jwt = false
+
+[functions.generate-specifications]
+verify_jwt = false
+
+[functions.generate-admin-proposals]
+verify_jwt = false

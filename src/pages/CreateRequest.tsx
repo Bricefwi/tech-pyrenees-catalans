@@ -26,6 +26,8 @@ const CreateRequest = () => {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [specifications, setSpecifications] = useState("");
+  const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -44,10 +46,50 @@ const CreateRequest = () => {
     const prompts: Record<string, string> = {
       "repair_iphone": `Tu es un expert en diagnostic de pannes iPhone. Pose des questions pour identifier le modèle, comprendre le problème et proposer un diagnostic.`,
       "repair_mac": `Tu es un expert en diagnostic de pannes Mac et iPad. Pose des questions pour identifier l'appareil, comprendre le problème et proposer un diagnostic.`,
-      "development": `Tu es un expert en développement. Pose des questions pour comprendre le besoin fonctionnel et proposer une solution technique.`,
-      "nocode": `Tu es un expert en solutions No-Code. Pose des questions pour identifier les processus à automatiser et proposer des outils adaptés.`,
-      "ai": `Tu es un expert en intégration IA. Pose des questions pour comprendre les besoins d'automatisation et proposer des solutions IA.`,
-      "formation": `Tu es un formateur expert. Pose des questions pour comprendre les besoins de formation et le niveau des équipes.`
+      "development": `Tu es un consultant en transformation digitale spécialisé en développement.
+
+Ton objectif est de guider le client pour définir précisément son besoin et construire un cahier des charges.
+
+Pose des questions progressives pour comprendre:
+1. Le CONTEXTE: Quelle est son activité? Quelle problématique il rencontre?
+2. Les OBJECTIFS: Que veut-il accomplir concrètement? Quels résultats mesurables attend-il?
+3. Les FONCTIONNALITÉS: Quelles sont les fonctionnalités principales attendues? Les utilisateurs cibles?
+4. Les CONTRAINTES: Budget estimé? Délais? Systèmes existants à intégrer?
+
+Sois concret, orienté projet, et aide le client à formuler clairement son besoin. Pose 2-3 questions à la fois maximum.`,
+      "nocode": `Tu es un consultant en transformation digitale spécialisé en solutions No-Code.
+
+Ton objectif est de guider le client pour identifier ses processus à digitaliser et construire un cahier des charges.
+
+Pose des questions progressives pour comprendre:
+1. Le CONTEXTE: Quelle est son activité? Quels processus manuels lui font perdre du temps?
+2. Les OBJECTIFS: Quels processus veut-il automatiser? Quels gains attend-il (temps, coûts, qualité)?
+3. Les FLUX: Comment fonctionnent actuellement ses processus? Quels outils utilise-t-il?
+4. Les BESOINS: Combien d'utilisateurs? Quelles données manipuler? Intégrations nécessaires?
+
+Sois concret, identifie les opportunités No-Code (Make, Zapier, Airtable, etc.), pose 2-3 questions à la fois.`,
+      "ai": `Tu es un consultant en transformation digitale spécialisé en Intelligence Artificielle.
+
+Ton objectif est de guider le client pour identifier comment l'IA peut transformer son activité et construire un cahier des charges.
+
+Pose des questions progressives pour comprendre:
+1. Le CONTEXTE: Quelle est son activité? Quels processus chronophages ou répétitifs identifie-t-il?
+2. Les OPPORTUNITÉS: Traitement de données? Automatisation? Service client? Aide à la décision?
+3. Les CAS D'USAGE: Quels types de tâches veut-il automatiser avec l'IA? (chatbots, analyse, génération contenu, etc.)
+4. Les DONNÉES: Quelles données disponibles? Volume? Qualité?
+
+Sois concret, éducatif sur le potentiel de l'IA, propose des cas d'usage inspirants, pose 2-3 questions à la fois.`,
+      "formation": `Tu es un consultant en transformation digitale spécialisé en Formation.
+
+Ton objectif est de guider le client pour définir ses besoins en formation digitale/IA/No-Code et construire un cahier des charges.
+
+Pose des questions progressives pour comprendre:
+1. Le CONTEXTE: Quelle est la structure? Combien de personnes? Quels niveaux actuels?
+2. Les OBJECTIFS: Quelles compétences développer? (No-Code, IA, digital, automatisation?)
+3. Le PUBLIC: Profils à former? Niveau technique actuel? Disponibilité?
+4. Les MODALITÉS: Présentiel, distanciel, hybride? Durée souhaitée? Mise en pratique sur projets réels?
+
+Sois concret, propose des formats adaptés, identifie les besoins de montée en compétences, pose 2-3 questions à la fois.`
     };
     return prompts[serviceType] || prompts["development"];
   };
@@ -98,6 +140,51 @@ const CreateRequest = () => {
     }
   };
 
+  const handleGenerateSpecifications = async () => {
+    if (messages.length < 4) {
+      toast({
+        title: "Échange insuffisant",
+        description: "Continuez l'échange avec l'IA pour définir votre besoin avant de générer le cahier des charges",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingSpec(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-specifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages,
+          serviceType
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erreur génération");
+
+      const data = await response.json();
+      setSpecifications(data.specifications);
+      
+      toast({
+        title: "Cahier des charges généré",
+        description: "Votre cahier des charges a été créé avec succès",
+      });
+    } catch (error) {
+      console.error("Erreur:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer le cahier des charges",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingSpec(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -110,20 +197,27 @@ const CreateRequest = () => {
       return;
     }
 
+    // Pour les services digitaux, encourager la génération du CDC
+    const isDigitalService = ["development", "nocode", "ai", "formation"].includes(serviceType);
+    if (isDigitalService && messages.length > 0 && !specifications) {
+      toast({
+        title: "Générer le cahier des charges",
+        description: "Générez d'abord votre cahier des charges pour mieux définir votre projet",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Générer un résumé du chat si disponible
-      const chatSummary = messages.length > 0 
-        ? messages.map(m => `${m.role}: ${m.content}`).join("\n")
-        : null;
-
       const { error } = await supabase
         .from("service_requests")
         .insert({
           client_user_id: user.id,
           service_type: serviceType,
           title,
-          description: chatSummary ? `${description}\n\nDiagnostic chat:\n${chatSummary}` : description,
+          description,
+          ai_specifications: specifications || null,
           status: "pending",
           priority: "medium"
         });
@@ -135,7 +229,6 @@ const CreateRequest = () => {
         description: "Votre demande a été créée avec succès",
       });
 
-      // Redirect après un court délai pour que l'utilisateur voie le message de succès
       setTimeout(() => {
         navigate("/client-dashboard");
       }, 1500);
@@ -216,19 +309,25 @@ const CreateRequest = () => {
           {/* Chat de diagnostic */}
           <Card>
             <CardHeader>
-              <CardTitle>Diagnostic assisté par IA</CardTitle>
+              <CardTitle>
+                {["development", "nocode", "ai", "formation"].includes(serviceType)
+                  ? "Définition du cahier des charges avec IA"
+                  : "Diagnostic assisté par IA"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {!serviceType ? (
                 <div className="text-center text-muted-foreground py-8">
-                  Sélectionnez d'abord un type de service pour commencer le diagnostic
+                  Sélectionnez d'abord un type de service pour commencer
                 </div>
               ) : (
                 <>
                   <div className="space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4">
                     {messages.length === 0 && (
                       <div className="text-center text-muted-foreground py-8">
-                        Décrivez votre besoin pour obtenir un diagnostic personnalisé
+                        {["development", "nocode", "ai", "formation"].includes(serviceType)
+                          ? "Échangez avec l'IA pour définir précisément votre projet et créer un cahier des charges"
+                          : "Décrivez votre besoin pour obtenir un diagnostic personnalisé"}
                       </div>
                     )}
                     {messages.map((msg, i) => (
@@ -266,6 +365,26 @@ const CreateRequest = () => {
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  {["development", "nocode", "ai", "formation"].includes(serviceType) && messages.length >= 4 && (
+                    <Button 
+                      onClick={handleGenerateSpecifications} 
+                      disabled={isGeneratingSpec}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {isGeneratingSpec ? "Génération en cours..." : "Générer le cahier des charges"}
+                    </Button>
+                  )}
+
+                  {specifications && (
+                    <div className="mt-4 border rounded-lg p-4 bg-muted/50">
+                      <h3 className="font-semibold mb-2">Cahier des charges généré:</h3>
+                      <div className="text-sm whitespace-pre-wrap max-h-60 overflow-y-auto">
+                        {specifications}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
