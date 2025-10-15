@@ -38,6 +38,7 @@ const App = () => (
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/client-dashboard" element={<ClientDashboard />} />
               <Route path="/audit" element={<Audit />} />
+              <Route path="/aperçu-email" element={<EmailPreview />} />
               <Route path="/create-request" element={<CreateRequest />} />
             <Route path="/email-preview" element={<EmailPreview />} />
             <Route path="/service-suggestions" element={<ServiceSuggestions />} />

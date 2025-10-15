@@ -40,6 +40,7 @@ const Audit = () => {
   const [auditReport, setAuditReport] = useState<string | null>(null);
   const [currentSectorIndex, setCurrentSectorIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [sectorComments, setSectorComments] = useState<Record<string, string>>({});
   const [companyInfo, setCompanyInfo] = useState({
     name: "",
     sector: "",
@@ -169,9 +170,10 @@ const Audit = () => {
       return;
     }
 
-    // Save responses for current sector
+    // Save responses and comment for current sector
     if (auditId) {
       await saveResponses();
+      await saveSectorComment();
     }
 
     if (currentSectorIndex < sectors.length - 1) {
@@ -196,6 +198,24 @@ const Audit = () => {
     if (error) {
       console.error("Error saving responses:", error);
       throw error;
+    }
+  };
+
+  const saveSectorComment = async () => {
+    const currentSector = sectors[currentSectorIndex];
+    if (!currentSector) return;
+
+    const comment = sectorComments[currentSector.id];
+    if (!comment || comment.trim() === '') return;
+
+    const { error } = await supabase.from("sector_comments").insert({
+      audit_id: auditId,
+      sector_id: currentSector.id,
+      comment: comment.trim()
+    });
+
+    if (error) {
+      console.error("Error saving sector comment:", error);
     }
   };
 
@@ -234,6 +254,21 @@ const Audit = () => {
         .select("*")
         .eq("audit_id", auditId);
 
+      // Récupérer les commentaires par secteur
+      const { data: commentsData } = await supabase
+        .from("sector_comments")
+        .select(`
+          comment,
+          sector_id,
+          audit_sectors!inner(name)
+        `)
+        .eq("audit_id", auditId);
+
+      const sectorCommentsFormatted = (commentsData || []).map((c: any) => ({
+        sector_name: c.audit_sectors.name,
+        comment: c.comment
+      }));
+
       // Générer le rapport avec l'IA
       const { data: reportData, error: reportError } = await supabase.functions.invoke(
         'generate-audit-report',
@@ -242,7 +277,8 @@ const Audit = () => {
             auditData: {
               sectors,
               questions,
-              responses: responsesData
+              responses: responsesData,
+              sectorComments: sectorCommentsFormatted
             },
             companyInfo
           }
@@ -400,10 +436,11 @@ const Audit = () => {
                 </CardHeader>
                  <CardContent className="space-y-6">
                   {auditReport ? (
-                    <div className="prose max-w-none">
-                      <div className="whitespace-pre-wrap bg-muted p-6 rounded-lg">
-                        {auditReport}
-                      </div>
+                    <div className="w-full">
+                      <div 
+                        className="bg-background p-6 rounded-lg shadow-sm"
+                        dangerouslySetInnerHTML={{ __html: auditReport }}
+                      />
                       <div className="flex gap-4 mt-6">
                         <Button onClick={() => navigate("/")}>
                           Retour à l'accueil
@@ -411,15 +448,32 @@ const Audit = () => {
                         <Button 
                           variant="outline"
                           onClick={() => {
-                            const blob = new Blob([auditReport], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `audit-${companyInfo.name}-${new Date().toISOString().split('T')[0]}.txt`;
-                            a.click();
+                            const printWindow = window.open('', '_blank');
+                            if (printWindow) {
+                              printWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                  <title>Audit - ${companyInfo.name}</title>
+                                  <style>
+                                    @media print {
+                                      body { margin: 0; padding: 20px; }
+                                    }
+                                  </style>
+                                </head>
+                                <body>
+                                  ${auditReport}
+                                </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                              setTimeout(() => {
+                                printWindow.print();
+                              }, 250);
+                            }
                           }}
                         >
-                          Télécharger le rapport
+                          Télécharger en PDF
                         </Button>
                       </div>
                     </div>
@@ -510,6 +564,22 @@ const Audit = () => {
                           )}
                         </div>
                       ))}
+
+                      {/* Champ libre à la fin des questions */}
+                      <div className="space-y-2 p-4 bg-muted/50 rounded-lg mt-6">
+                        <Label htmlFor={`comment-${currentSector.id}`} className="text-base font-medium">
+                          Vos attentes et souhaits pour ce secteur (optionnel)
+                        </Label>
+                        <Textarea
+                          id={`comment-${currentSector.id}`}
+                          placeholder="Partagez vos besoins spécifiques, vos priorités ou toute information complémentaire..."
+                          value={sectorComments[currentSector.id] || ""}
+                          onChange={(e) =>
+                            setSectorComments({ ...sectorComments, [currentSector.id]: e.target.value })
+                          }
+                          rows={4}
+                        />
+                      </div>
                     </>
                   )}
                   

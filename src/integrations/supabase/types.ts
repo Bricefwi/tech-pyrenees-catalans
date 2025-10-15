@@ -478,6 +478,45 @@ export type Database = {
           },
         ]
       }
+      sector_comments: {
+        Row: {
+          audit_id: string
+          comment: string | null
+          created_at: string | null
+          id: string
+          sector_id: string
+        }
+        Insert: {
+          audit_id: string
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          sector_id: string
+        }
+        Update: {
+          audit_id?: string
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          sector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_comments_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_comments_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "audit_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sector_scores: {
         Row: {
           audit_id: string

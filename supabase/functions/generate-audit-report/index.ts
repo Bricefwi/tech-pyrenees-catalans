@@ -43,19 +43,35 @@ serve(async (req) => {
     });
 
     const systemPrompt = `Tu es un expert en transformation digitale et en conseil aux entreprises. 
+
+Tu vas analyser un audit de maturité digitale et produire un rapport HTML5 détaillé et visuellement attractif avec :
+
+1. **En-tête percutant** : Titre principal avec le nom de l'entreprise et une accroche commerciale
+2. **Score global de maturité** : Calcul sur 100 et visualisation graphique (utilise des div avec des couleurs pour créer des barres de progression HTML/CSS)
+3. **Synthèse exécutive** : Vue d'ensemble de la maturité digitale en 3-4 points clés
+4. **Analyse détaillée par secteur** : 
+   - Score par secteur avec visualisation graphique
+   - Forces identifiées
+   - Faiblesses et opportunités d'amélioration
+   - Prendre en compte les commentaires libres de l'utilisateur
+5. **Projets de solutions concrets** : 
+   - 3-5 projets NoCode/IA/Automatisation adaptés
+   - Pour chaque projet : description, gains potentiels (temps, productivité, CA), ROI estimé
+6. **Plan de transformation** : Roadmap sur 6-12 mois avec phases et étapes
+7. **Stack technologique recommandée** : Outils NoCode/IA adaptés au secteur avec justifications
+
+Format HTML5 moderne avec :
+- Structure sémantique (sections, articles)
+- Style inline CSS professionnel avec couleurs modernes (#2563eb bleu principal, #10b981 vert succès, #f59e0b orange attention)
+- Graphiques créés avec des div stylisées (barres de progression, indicateurs visuels)
+- Typographie claire et hiérarchie visuelle
+- Design épuré et professionnel adapté à un outil commercial
+- Responsive et imprimable en PDF
+
+Utilise un ton professionnel mais accessible. Sois concret, actionnable et commercial pour convertir le prospect.`;
+
+    const sectorComments = auditData.sectorComments || [];
     
-Tu vas analyser un audit de maturité digitale et produire un rapport détaillé avec :
-
-1. **Synthèse générale** : Vue d'ensemble de la maturité digitale
-2. **Analyse par secteur** : Forces et faiblesses identifiées
-3. **Score de maturité** : Calcul et interprétation (échelle 1-5)
-4. **Recommandations prioritaires** : 3 à 5 actions concrètes à impact rapide
-5. **Plan de transformation** : Roadmap sur 6-12 mois
-6. **Gains attendus** : Estimation des bénéfices (temps économisé, productivité, chiffre d'affaires)
-7. **Stack technologique recommandée** : Outils NoCode/IA adaptés au secteur
-
-Utilise un ton professionnel mais accessible. Sois concret et actionnable.`;
-
     const userPrompt = `Voici l'audit digital d'une entreprise :
 
 **Informations entreprise :**
@@ -66,7 +82,10 @@ Utilise un ton professionnel mais accessible. Sois concret et actionnable.`;
 **Réponses par secteur :**
 ${JSON.stringify(sectorsData, null, 2)}
 
-Génère un rapport complet d'audit digital professionnel avec toutes les sections demandées.`;
+**Commentaires et attentes du client par secteur :**
+${sectorComments.map((c: any) => `- ${c.sector_name}: ${c.comment || 'Aucun commentaire'}`).join('\n')}
+
+Génère un rapport HTML5 complet d'audit digital professionnel avec toutes les sections demandées. Le HTML doit être auto-suffisant avec CSS inline et prêt à être converti en PDF.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -81,7 +100,7 @@ Génère un rapport complet d'audit digital professionnel avec toutes les sectio
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 8000,
       }),
     });
 
