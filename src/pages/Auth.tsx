@@ -42,6 +42,18 @@ const Auth = () => {
         description: "Vous êtes maintenant connecté",
       });
 
+      // Check if profile is completed
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("profile_completed")
+        .eq("user_id", data.user.id)
+        .single();
+
+      if (!profile?.profile_completed) {
+        navigate("/profile-completion");
+        return;
+      }
+
       // Check if user is admin
       const { data: roleData } = await supabase
         .from("user_roles")
@@ -108,10 +120,10 @@ const Auth = () => {
 
         toast({
           title: "Compte créé",
-          description: "Vous pouvez maintenant vous connecter",
+          description: "Complétez maintenant votre profil",
         });
 
-        navigate("/client-dashboard");
+        navigate("/profile-completion");
       }
     } catch (error: any) {
       toast({

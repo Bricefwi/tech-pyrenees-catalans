@@ -407,35 +407,56 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_sector: string | null
+          company_address: string | null
           company_name: string | null
           created_at: string | null
           email: string
+          first_name: string | null
           full_name: string
           id: string
           is_professional: boolean | null
+          last_name: string | null
+          mobile_phone: string | null
           phone: string | null
+          profile_completed: boolean | null
+          siret_siren: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          business_sector?: string | null
+          company_address?: string | null
           company_name?: string | null
           created_at?: string | null
           email: string
+          first_name?: string | null
           full_name: string
           id?: string
           is_professional?: boolean | null
+          last_name?: string | null
+          mobile_phone?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
+          siret_siren?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          business_sector?: string | null
+          company_address?: string | null
           company_name?: string | null
           created_at?: string | null
           email?: string
+          first_name?: string | null
           full_name?: string
           id?: string
           is_professional?: boolean | null
+          last_name?: string | null
+          mobile_phone?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
+          siret_siren?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

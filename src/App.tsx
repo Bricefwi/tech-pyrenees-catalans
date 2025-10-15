@@ -14,6 +14,7 @@ import CreateRequest from "./pages/CreateRequest";
 import ServiceSuggestions from "./pages/ServiceSuggestions";
 import Contact from "./pages/Contact";
 import AdminSetup from "./pages/AdminSetup";
+import ProfileCompletion from "./pages/ProfileCompletion";
 import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/service-suggestions" element={<ServiceSuggestions />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin-setup" element={<AdminSetup />} />
+              <Route path="/profile-completion" element={<ProfileCompletion />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
