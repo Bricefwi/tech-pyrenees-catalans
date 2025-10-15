@@ -197,15 +197,11 @@ Sois concret, propose des formats adaptés, identifie les besoins de montée en 
       return;
     }
 
-    // Pour les services digitaux, encourager la génération du CDC
+    // Pour les services digitaux, encourager (mais ne pas bloquer) la génération du CDC
     const isDigitalService = ["development", "nocode", "ai", "formation"].includes(serviceType);
-    if (isDigitalService && messages.length > 0 && !specifications) {
-      toast({
-        title: "Générer le cahier des charges",
-        description: "Générez d'abord votre cahier des charges pour mieux définir votre projet",
-        variant: "destructive",
-      });
-      return;
+    if (isDigitalService && messages.length > 3 && !specifications) {
+      // Simplement avertir l'utilisateur, sans bloquer
+      console.log("Note: Le cahier des charges n'a pas été généré, mais la demande peut être soumise");
     }
 
     setIsLoading(true);
