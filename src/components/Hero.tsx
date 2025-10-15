@@ -1,8 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Wrench, Code, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-catalan.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
+  const scrollToContact = () => {
+    const element = document.getElementById('contact');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -38,6 +48,7 @@ const Hero = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button 
               size="lg" 
+              onClick={scrollToContact}
               className="bg-white text-primary hover:bg-white/90 shadow-elevated group"
             >
               Décrire ma panne
@@ -46,6 +57,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               variant="outline"
+              onClick={() => navigate('/audit')}
               className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
             >
               Audit gratuit entreprise
