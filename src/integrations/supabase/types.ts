@@ -14,81 +14,43 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_criteria: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          max_score: number
-          name: string
-          order_index: number
-          sector_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          max_score?: number
-          name: string
-          order_index: number
-          sector_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          max_score?: number
-          name?: string
-          order_index?: number
-          sector_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_criteria_sector_id_fkey"
-            columns: ["sector_id"]
-            isOneToOne: false
-            referencedRelation: "audit_sectors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       audit_questions: {
         Row: {
           created_at: string | null
-          criterion_id: string
           id: string
-          options: Json | null
           order_index: number
           question_text: string
-          question_type: string
-          weight: number | null
+          response_type: string
+          sector_id: string
+          subdomain: string
+          weighting: number
         }
         Insert: {
           created_at?: string | null
-          criterion_id: string
           id?: string
-          options?: Json | null
           order_index: number
           question_text: string
-          question_type?: string
-          weight?: number | null
+          response_type: string
+          sector_id: string
+          subdomain: string
+          weighting: number
         }
         Update: {
           created_at?: string | null
-          criterion_id?: string
           id?: string
-          options?: Json | null
           order_index?: number
           question_text?: string
-          question_type?: string
-          weight?: number | null
+          response_type?: string
+          sector_id?: string
+          subdomain?: string
+          weighting?: number
         }
         Relationships: [
           {
-            foreignKeyName: "audit_questions_criterion_id_fkey"
-            columns: ["criterion_id"]
+            foreignKeyName: "audit_questions_sector_id_fkey"
+            columns: ["sector_id"]
             isOneToOne: false
-            referencedRelation: "audit_criteria"
+            referencedRelation: "audit_sectors"
             referencedColumns: ["id"]
           },
         ]
@@ -138,35 +100,26 @@ export type Database = {
         Row: {
           audit_id: string
           created_at: string | null
-          criterion: string
           id: string
           question_id: string
-          question_text: string
-          response: string | null
+          response_value: string
           score: number | null
-          sector: string
         }
         Insert: {
           audit_id: string
           created_at?: string | null
-          criterion: string
           id?: string
           question_id: string
-          question_text: string
-          response?: string | null
+          response_value: string
           score?: number | null
-          sector: string
         }
         Update: {
           audit_id?: string
           created_at?: string | null
-          criterion?: string
           id?: string
           question_id?: string
-          question_text?: string
-          response?: string | null
+          response_value?: string
           score?: number | null
-          sector?: string
         }
         Relationships: [
           {
@@ -174,6 +127,13 @@ export type Database = {
             columns: ["audit_id"]
             isOneToOne: false
             referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "audit_questions"
             referencedColumns: ["id"]
           },
         ]
@@ -185,6 +145,7 @@ export type Database = {
           id: string
           name: string
           order_index: number
+          weighting: number
         }
         Insert: {
           created_at?: string | null
@@ -192,6 +153,7 @@ export type Database = {
           id?: string
           name: string
           order_index: number
+          weighting: number
         }
         Update: {
           created_at?: string | null
@@ -199,6 +161,7 @@ export type Database = {
           id?: string
           name?: string
           order_index?: number
+          weighting?: number
         }
         Relationships: []
       }

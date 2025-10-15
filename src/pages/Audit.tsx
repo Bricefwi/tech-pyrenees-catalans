@@ -17,25 +17,17 @@ interface AuditSector {
   name: string;
   description: string;
   order_index: number;
-}
-
-interface AuditCriterion {
-  id: string;
-  sector_id: string;
-  name: string;
-  description: string;
-  order_index: number;
-  max_score: number;
+  weighting: number;
 }
 
 interface AuditQuestion {
   id: string;
-  criterion_id: string;
+  sector_id: string;
+  subdomain: string;
   question_text: string;
-  question_type: string;
-  options: any;
+  response_type: string;
+  weighting: number;
   order_index: number;
-  weight: number;
 }
 
 const Audit = () => {
@@ -43,8 +35,9 @@ const Audit = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [sectors, setSectors] = useState<AuditSector[]>([]);
-  const [criteria, setCriteria] = useState<AuditCriterion[]>([]);
   const [questions, setQuestions] = useState<AuditQuestion[]>([]);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [auditReport, setAuditReport] = useState<string | null>(null);
   const [currentSectorIndex, setCurrentSectorIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [companyInfo, setCompanyInfo] = useState({
@@ -64,18 +57,15 @@ const Audit = () => {
 
   const loadAuditData = async () => {
     try {
-      const [sectorsRes, criteriaRes, questionsRes] = await Promise.all([
+      const [sectorsRes, questionsRes] = await Promise.all([
         supabase.from("audit_sectors").select("*").order("order_index"),
-        supabase.from("audit_criteria").select("*").order("order_index"),
         supabase.from("audit_questions").select("*").order("order_index")
       ]);
 
       if (sectorsRes.error) throw sectorsRes.error;
-      if (criteriaRes.error) throw criteriaRes.error;
       if (questionsRes.error) throw questionsRes.error;
 
       setSectors(sectorsRes.data || []);
-      setCriteria(criteriaRes.data || []);
       setQuestions(questionsRes.data || []);
     } catch (error) {
       console.error("Error loading audit data:", error);
@@ -163,9 +153,7 @@ const Audit = () => {
     const currentSector = sectors[currentSectorIndex];
     if (!currentSector) return [];
     
-    const sectorCriteria = criteria.filter(c => c.sector_id === currentSector.id);
-    const criterionIds = sectorCriteria.map(c => c.id);
-    return questions.filter(q => criterionIds.includes(q.criterion_id));
+    return questions.filter(q => q.sector_id === currentSector.id);
   };
 
   const handleNext = async () => {
@@ -195,20 +183,13 @@ const Audit = () => {
 
   const saveResponses = async () => {
     const currentQuestions = getCurrentSectorQuestions();
-    const currentSector = sectors[currentSectorIndex];
     
-    const responsesToSave = currentQuestions.map(question => {
-      const criterion = criteria.find(c => c.id === question.criterion_id);
-      return {
-        audit_id: auditId,
-        question_id: question.id,
-        question_text: question.question_text,
-        response: responses[question.id],
-        criterion: criterion?.name || "",
-        sector: currentSector.name,
-        score: calculateScore(question, responses[question.id])
-      };
-    });
+    const responsesToSave = currentQuestions.map(question => ({
+      audit_id: auditId,
+      question_id: question.id,
+      response_value: responses[question.id],
+      score: calculateScore(question, responses[question.id])
+    }));
 
     const { error } = await supabase.from("audit_responses").insert(responsesToSave);
     
@@ -219,27 +200,82 @@ const Audit = () => {
   };
 
   const calculateScore = (question: AuditQuestion, response: string): number => {
-    if (question.question_type === "rating") {
-      return parseFloat(response) || 0;
+    switch (question.response_type) {
+      case 'yes_no':
+        return response === 'yes' ? 5 : 0;
+      case 'yes_no_partial':
+        if (response === 'yes') return 5;
+        if (response === 'partial') return 2.5;
+        return 0;
+      case 'low_medium_high':
+        if (response === 'high') return 5;
+        if (response === 'medium') return 3;
+        return 1;
+      case 'hours':
+        const hours = parseFloat(response) || 0;
+        // Plus d'heures perdues = score plus bas
+        if (hours === 0) return 5;
+        if (hours <= 5) return 4;
+        if (hours <= 10) return 3;
+        if (hours <= 20) return 2;
+        return 1;
+      default:
+        return 0;
     }
-    return 0;
   };
 
   const completeAudit = async () => {
     try {
+      setIsGeneratingReport(true);
+      
+      // Récupérer toutes les réponses
+      const { data: responsesData } = await supabase
+        .from("audit_responses")
+        .select("*")
+        .eq("audit_id", auditId);
+
+      // Générer le rapport avec l'IA
+      const { data: reportData, error: reportError } = await supabase.functions.invoke(
+        'generate-audit-report',
+        {
+          body: {
+            auditData: {
+              sectors,
+              questions,
+              responses: responsesData
+            },
+            companyInfo
+          }
+        }
+      );
+
+      if (reportError) {
+        console.error("Error generating report:", reportError);
+        toast({
+          title: "Erreur",
+          description: "Impossible de générer le rapport IA",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setAuditReport(reportData.report);
+      
+      // Mettre à jour l'audit comme complété
       const { error } = await supabase
         .from("audits")
-        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .update({ 
+          status: "completed", 
+          completed_at: new Date().toISOString()
+        })
         .eq("id", auditId);
 
       if (error) throw error;
 
       toast({
         title: "Audit complété",
-        description: "Votre audit a été enregistré avec succès",
+        description: "Rapport généré avec succès",
       });
-
-      navigate("/");
     } catch (error) {
       console.error("Error completing audit:", error);
       toast({
@@ -247,6 +283,8 @@ const Audit = () => {
         description: "Impossible de finaliser l'audit",
         variant: "destructive"
       });
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -360,76 +398,153 @@ const Audit = () => {
                     <CardDescription>{currentSector.description}</CardDescription>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {currentQuestions.map((question) => {
-                    const criterion = criteria.find(c => c.id === question.criterion_id);
-                    return (
-                      <div key={question.id} className="space-y-3 p-4 border rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm text-primary mb-1">
-                            {criterion?.name}
-                          </p>
-                          <p className="font-medium">{question.question_text}</p>
-                        </div>
-                        {question.question_type === "rating" && (
-                          <RadioGroup
-                            value={responses[question.id] || ""}
-                            onValueChange={(value) =>
-                              setResponses({ ...responses, [question.id]: value })
-                            }
-                          >
-                            {[1, 2, 3, 4, 5].map((rating) => (
-                              <div key={rating} className="flex items-center space-x-2">
-                                <RadioGroupItem value={rating.toString()} id={`${question.id}-${rating}`} />
-                                <Label htmlFor={`${question.id}-${rating}`} className="cursor-pointer">
-                                  {rating} - {
-                                    rating === 1 ? "Pas du tout" :
-                                    rating === 2 ? "Peu" :
-                                    rating === 3 ? "Moyennement" :
-                                    rating === 4 ? "Bien" :
-                                    "Excellent"
-                                  }
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        )}
-                        {question.question_type === "text" && (
-                          <Textarea
-                            value={responses[question.id] || ""}
-                            onChange={(e) =>
-                              setResponses({ ...responses, [question.id]: e.target.value })
-                            }
-                            placeholder="Votre réponse..."
-                          />
-                        )}
+                 <CardContent className="space-y-6">
+                  {auditReport ? (
+                    <div className="prose max-w-none">
+                      <div className="whitespace-pre-wrap bg-muted p-6 rounded-lg">
+                        {auditReport}
                       </div>
-                    );
-                  })}
+                      <div className="flex gap-4 mt-6">
+                        <Button onClick={() => navigate("/")}>
+                          Retour à l'accueil
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            const blob = new Blob([auditReport], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `audit-${companyInfo.name}-${new Date().toISOString().split('T')[0]}.txt`;
+                            a.click();
+                          }}
+                        >
+                          Télécharger le rapport
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {currentQuestions.map((question) => (
+                        <div key={question.id} className="space-y-3 p-4 border rounded-lg">
+                          <div>
+                            <p className="font-medium text-sm text-primary mb-1">
+                              {question.subdomain}
+                            </p>
+                            <p className="font-medium">{question.question_text}</p>
+                          </div>
+                          
+                          {question.response_type === "yes_no" && (
+                            <RadioGroup
+                              value={responses[question.id] || ""}
+                              onValueChange={(value) =>
+                                setResponses({ ...responses, [question.id]: value })
+                              }
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="yes" id={`${question.id}-yes`} />
+                                <Label htmlFor={`${question.id}-yes`} className="cursor-pointer">Oui</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="no" id={`${question.id}-no`} />
+                                <Label htmlFor={`${question.id}-no`} className="cursor-pointer">Non</Label>
+                              </div>
+                            </RadioGroup>
+                          )}
+                          
+                          {question.response_type === "yes_no_partial" && (
+                            <RadioGroup
+                              value={responses[question.id] || ""}
+                              onValueChange={(value) =>
+                                setResponses({ ...responses, [question.id]: value })
+                              }
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="yes" id={`${question.id}-yes`} />
+                                <Label htmlFor={`${question.id}-yes`} className="cursor-pointer">Oui</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="partial" id={`${question.id}-partial`} />
+                                <Label htmlFor={`${question.id}-partial`} className="cursor-pointer">Partiellement</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="no" id={`${question.id}-no`} />
+                                <Label htmlFor={`${question.id}-no`} className="cursor-pointer">Non</Label>
+                              </div>
+                            </RadioGroup>
+                          )}
+                          
+                          {question.response_type === "low_medium_high" && (
+                            <RadioGroup
+                              value={responses[question.id] || ""}
+                              onValueChange={(value) =>
+                                setResponses({ ...responses, [question.id]: value })
+                              }
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="low" id={`${question.id}-low`} />
+                                <Label htmlFor={`${question.id}-low`} className="cursor-pointer">Bas</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="medium" id={`${question.id}-medium`} />
+                                <Label htmlFor={`${question.id}-medium`} className="cursor-pointer">Moyen</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="high" id={`${question.id}-high`} />
+                                <Label htmlFor={`${question.id}-high`} className="cursor-pointer">Élevé</Label>
+                              </div>
+                            </RadioGroup>
+                          )}
+                          
+                          {question.response_type === "hours" && (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              placeholder="Nombre d'heures"
+                              value={responses[question.id] || ""}
+                              onChange={(e) =>
+                                setResponses({ ...responses, [question.id]: e.target.value })
+                              }
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  )}
                   
-                  <div className="flex justify-between pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentSectorIndex(Math.max(0, currentSectorIndex - 1))}
-                      disabled={currentSectorIndex === 0}
-                    >
-                      <ArrowLeft className="mr-2 w-4 h-4" />
-                      Précédent
-                    </Button>
-                    <Button onClick={handleNext}>
-                      {currentSectorIndex === sectors.length - 1 ? (
-                        <>
-                          Terminer
-                          <CheckCircle2 className="ml-2 w-5 h-5" />
-                        </>
-                      ) : (
-                        <>
-                          Suivant
-                          <ArrowRight className="ml-2 w-5 h-5" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {!auditReport && (
+                    <div className="flex justify-between pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setCurrentSectorIndex(Math.max(0, currentSectorIndex - 1))}
+                        disabled={currentSectorIndex === 0}
+                      >
+                        <ArrowLeft className="mr-2 w-4 h-4" />
+                        Précédent
+                      </Button>
+                      <Button 
+                        onClick={handleNext}
+                        disabled={isGeneratingReport}
+                      >
+                        {isGeneratingReport ? (
+                          <>
+                            Génération du rapport...
+                          </>
+                        ) : currentSectorIndex === sectors.length - 1 ? (
+                          <>
+                            Terminer et générer le rapport
+                            <CheckCircle2 className="ml-2 w-5 h-5" />
+                          </>
+                        ) : (
+                          <>
+                            Suivant
+                            <ArrowRight className="ml-2 w-5 h-5" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
