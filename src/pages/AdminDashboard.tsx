@@ -353,11 +353,25 @@ const AdminDashboard = () => {
                       </Button>
                     )}
                     <Button 
-                      onClick={() => navigate(`/admin#request-${request.id}`)}
+                      onClick={() => navigate(`/admin/request/${request.id}`)}
                       size="sm"
                       variant="ghost"
                     >
-                      Détails
+                      Chat
+                    </Button>
+                    <Button 
+                      onClick={() => navigate(`/admin/quote/${request.id}`)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Devis
+                    </Button>
+                    <Button 
+                      onClick={() => navigate(`/admin/intervention/${request.id}`)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Dates
                     </Button>
                   </div>
                 </CardContent>
