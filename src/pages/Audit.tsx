@@ -103,17 +103,7 @@ const Audit = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        toast({
-          title: "Authentification requise",
-          description: "Veuillez vous connecter pour démarrer l'audit",
-          variant: "destructive"
-        });
-        navigate("/auth");
-        return;
-      }
-
-      // Create company
+      // Create company (without user requirement - audit can be done anonymously)
       const { data: company, error: companyError } = await supabase
         .from("audited_companies")
         .insert({
@@ -123,7 +113,7 @@ const Audit = () => {
           contact_name: companyInfo.contactName.trim(),
           contact_email: companyInfo.contactEmail.trim(),
           contact_phone: companyInfo.contactPhone.trim(),
-          created_by: user.id
+          created_by: user?.id || null
         })
         .select()
         .single();
@@ -133,12 +123,12 @@ const Audit = () => {
         throw new Error(`Erreur lors de la création de l'entreprise: ${companyError.message}`);
       }
 
-      // Create audit
+      // Create audit (can be created without user)
       const { data: audit, error: auditError } = await supabase
         .from("audits")
         .insert({
           company_id: company.id,
-          created_by: user.id,
+          created_by: user?.id || null,
           current_sector: sectors[0]?.name || 'digitalisation',
           status: "in_progress"
         })

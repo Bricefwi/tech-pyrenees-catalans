@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, MessageSquare, FileText, Calendar, Plus } from "lucide-react";
+import { LogOut, MessageSquare, FileText, Calendar, Plus, Home } from "lucide-react";
+import Header from "@/components/Header";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -87,22 +88,28 @@ const ClientDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Mes demandes</h1>
-          <div className="flex gap-2">
-            <Button onClick={() => navigate("/create-request")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle demande
-            </Button>
-            <Button onClick={handleLogout} variant="outline">
-              <LogOut className="mr-2 h-4 w-4" />
-              Déconnexion
-            </Button>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="p-6 pt-24">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Mes demandes</h1>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate("/")}>
+                <Home className="mr-2 h-4 w-4" />
+                Accueil
+              </Button>
+              <Button onClick={() => navigate("/create-request")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouvelle demande
+              </Button>
+              <Button onClick={handleLogout} variant="outline">
+                <LogOut className="mr-2 h-4 w-4" />
+                Déconnexion
+              </Button>
+            </div>
           </div>
-        </div>
 
         {/* Service Requests */}
         <div className="space-y-4">
@@ -183,6 +190,7 @@ const ClientDashboard = () => {
               </Card>
             ))
           )}
+        </div>
         </div>
       </div>
     </div>
