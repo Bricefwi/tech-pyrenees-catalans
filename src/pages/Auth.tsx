@@ -47,9 +47,9 @@ const Auth = () => {
         .from("profiles")
         .select("profile_completed")
         .eq("user_id", data.user.id)
-        .single();
+        .maybeSingle();
 
-      if (!profile?.profile_completed) {
+      if (!profile || !profile.profile_completed) {
         navigate("/profile-completion");
         return;
       }
@@ -59,7 +59,7 @@ const Auth = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id)
-        .single();
+        .maybeSingle();
 
       if (roleData?.role === "admin") {
         navigate("/admin");
