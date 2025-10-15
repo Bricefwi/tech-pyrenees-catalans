@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,8 @@ interface AuditQuestion {
 const Audit = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const viewAuditId = searchParams.get('view');
   const [isLoading, setIsLoading] = useState(true);
   const [sectors, setSectors] = useState<AuditSector[]>([]);
   const [questions, setQuestions] = useState<AuditQuestion[]>([]);
@@ -51,10 +53,104 @@ const Audit = () => {
   });
   const [showCompanyForm, setShowCompanyForm] = useState(true);
   const [auditId, setAuditId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState(false);
 
   useEffect(() => {
-    loadAuditData();
-  }, []);
+    if (viewAuditId) {
+      loadExistingAudit(viewAuditId);
+    } else {
+      loadAuditData();
+    }
+  }, [viewAuditId]);
+
+  const loadExistingAudit = async (auditId: string) => {
+    try {
+      setViewMode(true);
+      setShowCompanyForm(false);
+      
+      // Charger l'audit et les infos de l'entreprise
+      const { data: audit, error: auditError } = await supabase
+        .from("audits")
+        .select(`
+          *,
+          audited_companies(*)
+        `)
+        .eq("id", auditId)
+        .single();
+
+      if (auditError) throw auditError;
+
+      if (!audit) {
+        toast({
+          title: "Erreur",
+          description: "Audit introuvable",
+          variant: "destructive"
+        });
+        navigate("/client-dashboard");
+        return;
+      }
+
+      // Charger le rapport généré
+      setIsGeneratingReport(true);
+      const { data: sectorsData } = await supabase.from("audit_sectors").select("*").order("order_index");
+      const { data: questionsData } = await supabase.from("audit_questions").select("*").order("order_index");
+      const { data: responsesData } = await supabase.from("audit_responses").select("*").eq("audit_id", auditId);
+      const { data: commentsData } = await supabase
+        .from("sector_comments")
+        .select(`comment, sector_id, audit_sectors!inner(name)`)
+        .eq("audit_id", auditId);
+
+      const company = audit.audited_companies as any;
+      
+      // Générer le rapport
+      const { data: reportData, error: reportError } = await supabase.functions.invoke(
+        'generate-audit-report',
+        {
+          body: {
+            auditData: {
+              sectors: sectorsData,
+              questions: questionsData,
+              responses: responsesData,
+              sectorComments: (commentsData || []).map((c: any) => ({
+                sector_name: c.audit_sectors.name,
+                comment: c.comment
+              }))
+            },
+            companyInfo: {
+              name: company?.name || "",
+              sector: company?.sector || "",
+              size: company?.size || "",
+              contactName: company?.contact_name || "",
+              contactEmail: company?.contact_email || "",
+              contactPhone: company?.contact_phone || ""
+            }
+          }
+        }
+      );
+
+      if (reportError) throw reportError;
+      
+      setAuditReport(reportData.report);
+      setCompanyInfo({
+        name: company?.name || "",
+        sector: company?.sector || "",
+        size: company?.size || "",
+        contactName: company?.contact_name || "",
+        contactEmail: company?.contact_email || "",
+        contactPhone: company?.contact_phone || ""
+      });
+    } catch (error: any) {
+      console.error("Error loading existing audit:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger le rapport d'audit",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+      setIsGeneratingReport(false);
+    }
+  };
 
   const loadAuditData = async () => {
     try {
@@ -340,7 +436,57 @@ const Audit = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 pt-24 pb-12">
-        {showCompanyForm ? (
+        {viewMode && auditReport ? (
+          <div className="max-w-4xl mx-auto space-y-6">
+            <Button variant="ghost" onClick={() => navigate("/client-dashboard")} className="mb-4">
+              <ArrowLeft className="mr-2 w-4 h-4" />
+              Retour au tableau de bord
+            </Button>
+            <Card>
+              <CardContent className="p-6">
+                <div 
+                  className="bg-background rounded-lg"
+                  dangerouslySetInnerHTML={{ __html: auditReport }}
+                />
+                <div className="flex gap-4 mt-6">
+                  <Button onClick={() => navigate("/client-dashboard")}>
+                    Retour au tableau de bord
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html>
+                          <head>
+                            <title>Audit - ${companyInfo.name}</title>
+                            <style>
+                              @media print {
+                                body { margin: 0; padding: 20px; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            ${auditReport}
+                          </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                        setTimeout(() => {
+                          printWindow.print();
+                        }, 250);
+                      }
+                    }}
+                  >
+                    Télécharger en PDF
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : showCompanyForm ? (
           <Card className="max-w-2xl mx-auto">
             <CardHeader>
               <CardTitle className="text-3xl">Audit Digital Gratuit</CardTitle>
