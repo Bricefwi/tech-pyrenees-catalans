@@ -554,7 +554,9 @@ export type Database = {
       }
       service_requests: {
         Row: {
+          admin_ai_proposals: string | null
           admin_notes: string | null
+          ai_specifications: string | null
           assigned_to: string | null
           business_sector: string | null
           client_user_id: string | null
@@ -576,7 +578,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          admin_ai_proposals?: string | null
           admin_notes?: string | null
+          ai_specifications?: string | null
           assigned_to?: string | null
           business_sector?: string | null
           client_user_id?: string | null
@@ -598,7 +602,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          admin_ai_proposals?: string | null
           admin_notes?: string | null
+          ai_specifications?: string | null
           assigned_to?: string | null
           business_sector?: string | null
           client_user_id?: string | null
