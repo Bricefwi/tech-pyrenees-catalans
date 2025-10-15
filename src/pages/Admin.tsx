@@ -66,7 +66,8 @@ const Admin = () => {
           profiles (
             full_name,
             email,
-            phone
+            phone,
+            company_name
           )
         `)
         .order("created_at", { ascending: false });
@@ -181,20 +182,32 @@ const Admin = () => {
 
               <TabsContent value="all" className="space-y-4">
                 {serviceRequests.map((request) => (
-                  <Card key={request.id}>
+                  <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{request.title}</h3>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-3 flex-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {request.request_number || `#${request.id.slice(0, 8)}`}
+                            </Badge>
+                            <h3 className="font-semibold text-lg">{request.title}</h3>
                             {getStatusBadge(request.status)}
                             {getPriorityBadge(request.priority)}
                           </div>
-                          <p className="text-sm text-muted-foreground">{request.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>Client: {request.profiles?.full_name}</span>
-                            <span>Email: {request.profiles?.email}</span>
-                            {request.profiles?.phone && <span>Tél: {request.profiles?.phone}</span>}
+                          <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
+                          <div className="flex items-start gap-6 text-sm">
+                            <div className="space-y-1">
+                              <p className="font-semibold text-foreground">👤 {request.profiles?.full_name}</p>
+                              {request.profiles?.company_name && (
+                                <p className="text-muted-foreground">🏢 {request.profiles.company_name}</p>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-muted-foreground">📧 {request.profiles?.email}</p>
+                              {request.profiles?.phone && (
+                                <p className="text-muted-foreground">📱 {request.profiles.phone}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2 flex-wrap">
@@ -241,20 +254,32 @@ const Admin = () => {
                 {serviceRequests
                   .filter((r) => r.status === "pending")
                   .map((request) => (
-                    <Card key={request.id}>
+                    <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
                       <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">{request.title}</h3>
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-3 flex-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {request.request_number || `#${request.id.slice(0, 8)}`}
+                              </Badge>
+                              <h3 className="font-semibold text-lg">{request.title}</h3>
                               {getStatusBadge(request.status)}
                               {getPriorityBadge(request.priority)}
                             </div>
-                            <p className="text-sm text-muted-foreground">{request.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>Client: {request.profiles?.full_name}</span>
-                              <span>Email: {request.profiles?.email}</span>
-                              {request.profiles?.phone && <span>Tél: {request.profiles?.phone}</span>}
+                            <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
+                            <div className="flex items-start gap-6 text-sm">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-foreground">👤 {request.profiles?.full_name}</p>
+                                {request.profiles?.company_name && (
+                                  <p className="text-muted-foreground">🏢 {request.profiles.company_name}</p>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-muted-foreground">📧 {request.profiles?.email}</p>
+                                {request.profiles?.phone && (
+                                  <p className="text-muted-foreground">📱 {request.profiles.phone}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex gap-2 flex-wrap">
@@ -301,20 +326,32 @@ const Admin = () => {
                 {serviceRequests
                   .filter((r) => r.status === "in_progress")
                   .map((request) => (
-                    <Card key={request.id}>
+                    <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
                       <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">{request.title}</h3>
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-3 flex-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {request.request_number || `#${request.id.slice(0, 8)}`}
+                              </Badge>
+                              <h3 className="font-semibold text-lg">{request.title}</h3>
                               {getStatusBadge(request.status)}
                               {getPriorityBadge(request.priority)}
                             </div>
-                            <p className="text-sm text-muted-foreground">{request.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>Client: {request.profiles?.full_name}</span>
-                              <span>Email: {request.profiles?.email}</span>
-                              {request.profiles?.phone && <span>Tél: {request.profiles?.phone}</span>}
+                            <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
+                            <div className="flex items-start gap-6 text-sm">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-foreground">👤 {request.profiles?.full_name}</p>
+                                {request.profiles?.company_name && (
+                                  <p className="text-muted-foreground">🏢 {request.profiles.company_name}</p>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-muted-foreground">📧 {request.profiles?.email}</p>
+                                {request.profiles?.phone && (
+                                  <p className="text-muted-foreground">📱 {request.profiles.phone}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex gap-2 flex-wrap">

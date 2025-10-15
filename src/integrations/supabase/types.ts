@@ -572,6 +572,7 @@ export type Database = {
           profile_id: string | null
           proposed_date: string | null
           quote_status: string | null
+          request_number: string | null
           service_type: string
           status: string
           title: string
@@ -596,6 +597,7 @@ export type Database = {
           profile_id?: string | null
           proposed_date?: string | null
           quote_status?: string | null
+          request_number?: string | null
           service_type: string
           status?: string
           title: string
@@ -620,6 +622,7 @@ export type Database = {
           profile_id?: string | null
           proposed_date?: string | null
           quote_status?: string | null
+          request_number?: string | null
           service_type?: string
           status?: string
           title?: string
@@ -661,6 +664,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_request_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
