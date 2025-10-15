@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
+import Header from "@/components/Header";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -46,7 +47,9 @@ const Contact = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 py-20 px-4">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="bg-gradient-to-br from-background via-background to-muted/20 py-20 px-4 pt-24">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16 space-y-4">
           <h1 className="text-5xl md:text-6xl font-bold">
@@ -151,6 +154,7 @@ const Contact = () => {
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );
