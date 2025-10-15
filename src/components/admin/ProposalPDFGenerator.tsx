@@ -287,17 +287,20 @@ export const generateProposalPDF = (data: ProposalData) => {
         <!-- En-tête professionnel avec société et client -->
         <div class="document-header">
           <div class="company-info">
-            <h1>SIMION DIGITAL</h1>
-            <p class="tagline">Transformation Digitale & Innovation</p>
-            <p>12 Rue de l'Innovation</p>
-            <p>75001 Paris, France</p>
-            <p>contact@simion-digital.fr</p>
-            <p>+33 1 23 45 67 89</p>
+            <h1>TECH CATALAN</h1>
+            <p class="tagline">Solutions Digitales & Innovation</p>
+            <p>Perpignan, France</p>
+            <p>contact@tech-catalan.fr</p>
+            <p>Tel: +33 (0)4 XX XX XX XX</p>
           </div>
           <div class="client-header-info">
             <h2>Client</h2>
-            <p><strong>${data.clientName}</strong></p>
-            ${!data.isIndividual && data.companyName ? `<p>${data.companyName}</p>` : ''}
+            ${data.isIndividual 
+              ? `<p><strong>${data.clientName}</strong></p>
+                 <p>Particulier</p>` 
+              : `<p><strong>${data.companyName || data.clientName}</strong></p>
+                 ${data.companyName ? `<p>Contact: ${data.clientName}</p>` : ''}`
+            }
             ${data.clientAddress ? `<p>${data.clientAddress}</p>` : ''}
             ${data.clientEmail ? `<p>${data.clientEmail}</p>` : ''}
             ${data.clientPhone ? `<p>${data.clientPhone}</p>` : ''}
@@ -413,7 +416,7 @@ export const generateProposalPDF = (data: ProposalData) => {
 
         <!-- Footer -->
         <div class="footer">
-          <p><strong>SIMION DIGITAL</strong> - Transformation Digitale & Innovation</p>
+          <p><strong>TECH CATALAN</strong> - Solutions Digitales & Innovation</p>
           <p>Ce document présente nos propositions de solutions. Un devis détaillé vous sera transmis sur demande.</p>
           <p style="margin-top: 10px;">Document confidentiel - ${new Date().toLocaleDateString('fr-FR', { 
             year: 'numeric', 
