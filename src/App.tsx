@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ClientDashboard from "./pages/ClientDashboard";
 import Audit from "./pages/Audit";
 import CreateRequest from "./pages/CreateRequest";
+import EmailPreview from "./pages/EmailPreview";
 import ServiceSuggestions from "./pages/ServiceSuggestions";
 import Contact from "./pages/Contact";
 import AdminSetup from "./pages/AdminSetup";
@@ -38,7 +39,8 @@ const App = () => (
               <Route path="/client-dashboard" element={<ClientDashboard />} />
               <Route path="/audit" element={<Audit />} />
               <Route path="/create-request" element={<CreateRequest />} />
-              <Route path="/service-suggestions" element={<ServiceSuggestions />} />
+            <Route path="/email-preview" element={<EmailPreview />} />
+            <Route path="/service-suggestions" element={<ServiceSuggestions />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin-setup" element={<AdminSetup />} />
               <Route path="/profile-completion" element={<ProfileCompletion />} />
