@@ -81,7 +81,7 @@ const AdminDashboard = () => {
   };
 
   const loadDashboardData = async () => {
-    // Charger les demandes avec les profils, devis et dates d'intervention
+    // Charger les demandes avec les profils, entreprises, devis et dates d'intervention
     const { data: requestsData } = await supabase
       .from("service_requests")
       .select(`
@@ -91,7 +91,14 @@ const AdminDashboard = () => {
           email,
           phone,
           first_name,
-          last_name
+          last_name,
+          is_professional,
+          companies (
+            id,
+            name,
+            is_individual,
+            business_sector
+          )
         ),
         quotes (
           id,
@@ -320,10 +327,25 @@ const AdminDashboard = () => {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <CardTitle className="text-lg">{request.title}</CardTitle>
-                      <div className="flex gap-2 items-center text-sm text-muted-foreground">
-                        <Users className="w-4 h-4" />
-                        {request.profiles?.full_name || "Client inconnu"}
-                        {request.profiles?.phone && ` • ${request.profiles.phone}`}
+                      <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                        <div className="flex gap-2 items-center">
+                          <Users className="w-4 h-4" />
+                          {request.profiles?.full_name || "Client inconnu"}
+                          {request.profiles?.phone && ` • ${request.profiles.phone}`}
+                        </div>
+                        {request.profiles?.companies && (
+                          <div className="flex gap-2 items-center ml-6">
+                            <Badge variant="outline" className="text-xs">
+                              {request.profiles.companies.is_individual ? '👤 Particulier' : '🏢 Entreprise'}
+                            </Badge>
+                            <span className="text-xs font-medium">
+                              {request.profiles.companies.name}
+                            </span>
+                            {request.profiles.companies.business_sector && !request.profiles.companies.is_individual && (
+                              <span className="text-xs">• {request.profiles.companies.business_sector}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">

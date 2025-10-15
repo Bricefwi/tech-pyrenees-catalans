@@ -67,7 +67,12 @@ const AdminQuote = () => {
         profiles (
           first_name,
           last_name,
-          email
+          email,
+          full_name,
+          companies (
+            name,
+            is_individual
+          )
         )
       `)
       .eq("id", requestId)
@@ -174,7 +179,12 @@ const AdminQuote = () => {
             {requestDetails && (
               <div className="mb-6 p-4 bg-muted rounded-lg space-y-2 text-sm">
                 <p><strong>Demande:</strong> {requestDetails.title}</p>
-                <p><strong>Client:</strong> {requestDetails.profiles?.first_name} {requestDetails.profiles?.last_name}</p>
+                <p><strong>Client:</strong> {requestDetails.profiles?.full_name || `${requestDetails.profiles?.first_name} ${requestDetails.profiles?.last_name}`}</p>
+                {requestDetails.profiles?.companies && (
+                  <p>
+                    <strong>{requestDetails.profiles.companies.is_individual ? 'Particulier' : 'Entreprise'}:</strong> {requestDetails.profiles.companies.name}
+                  </p>
+                )}
                 <p><strong>Description:</strong> {requestDetails.description}</p>
               </div>
             )}

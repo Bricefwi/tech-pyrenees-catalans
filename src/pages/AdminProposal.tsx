@@ -63,8 +63,12 @@ const AdminProposal = () => {
         profiles (
           full_name,
           email,
-          company_name,
-          business_sector
+          is_professional,
+          companies (
+            name,
+            is_individual,
+            business_sector
+          )
         )
       `)
       .eq("id", requestId)
@@ -98,8 +102,9 @@ const AdminProposal = () => {
     setIsGenerating(true);
     try {
       const clientInfo = `
-Entreprise: ${requestDetails.profiles?.company_name || 'Non renseigné'}
-Secteur: ${requestDetails.profiles?.business_sector || 'Non renseigné'}
+Type: ${requestDetails.profiles?.companies?.is_individual ? 'Particulier' : 'Entreprise'}
+${!requestDetails.profiles?.companies?.is_individual ? 'Entreprise: ' + (requestDetails.profiles?.companies?.name || 'Non renseigné') : ''}
+Secteur: ${requestDetails.profiles?.companies?.business_sector || 'Non renseigné'}
 Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email})
       `.trim();
 
@@ -190,8 +195,13 @@ Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <p><strong>Client:</strong> {requestDetails.profiles?.full_name}</p>
-                  <p><strong>Entreprise:</strong> {requestDetails.profiles?.company_name || "Non renseigné"}</p>
-                  <p><strong>Secteur:</strong> {requestDetails.profiles?.business_sector || "Non renseigné"}</p>
+                  <p>
+                    <strong>{requestDetails.profiles?.companies?.is_individual ? 'Particulier' : 'Entreprise'}:</strong>{' '}
+                    {requestDetails.profiles?.companies?.name || "Non renseigné"}
+                  </p>
+                  {!requestDetails.profiles?.companies?.is_individual && (
+                    <p><strong>Secteur:</strong> {requestDetails.profiles?.companies?.business_sector || "Non renseigné"}</p>
+                  )}
                   <p><strong>Service:</strong> {requestDetails.service_type}</p>
                   <p><strong>Titre:</strong> {requestDetails.title}</p>
                 </CardContent>

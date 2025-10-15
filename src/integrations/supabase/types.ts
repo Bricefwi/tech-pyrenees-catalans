@@ -257,6 +257,60 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          business_sector: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_individual: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          siret_siren: string | null
+          street_address: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          business_sector?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_individual?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          siret_siren?: string | null
+          street_address?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          business_sector?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_individual?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          siret_siren?: string | null
+          street_address?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       diagnostic_conversations: {
         Row: {
           ai_summary: string | null
@@ -525,6 +579,7 @@ export type Database = {
         Row: {
           business_sector: string | null
           city: string | null
+          company_id: string | null
           company_name: string | null
           country: string | null
           created_at: string | null
@@ -546,6 +601,7 @@ export type Database = {
         Insert: {
           business_sector?: string | null
           city?: string | null
+          company_id?: string | null
           company_name?: string | null
           country?: string | null
           created_at?: string | null
@@ -567,6 +623,7 @@ export type Database = {
         Update: {
           business_sector?: string | null
           city?: string | null
+          company_id?: string | null
           company_name?: string | null
           country?: string | null
           created_at?: string | null
@@ -585,7 +642,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotes: {
         Row: {
