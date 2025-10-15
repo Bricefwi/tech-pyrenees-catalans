@@ -23,7 +23,10 @@ const ProfileCompletion = () => {
   const [mobilePhone, setMobilePhone] = useState("");
   const [email, setEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [companyAddress, setCompanyAddress] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("France");
   const [siretSiren, setSiretSiren] = useState("");
   const [businessSector, setBusinessSector] = useState("");
 
@@ -84,7 +87,10 @@ const ProfileCompletion = () => {
           mobile_phone: mobilePhone,
           email: email,
           company_name: isProfessional ? companyName : null,
-          company_address: isProfessional ? companyAddress : null,
+          street_address: isProfessional ? streetAddress : null,
+          postal_code: isProfessional ? postalCode : null,
+          city: isProfessional ? city : null,
+          country: isProfessional ? country : null,
           siret_siren: isProfessional ? siretSiren : null,
           business_sector: isProfessional ? businessSector : null,
           profile_completed: true,
@@ -226,14 +232,51 @@ const ProfileCompletion = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="companyAddress">Adresse postale *</Label>
-                      <Textarea
-                        id="companyAddress"
-                        placeholder="Adresse complète de votre société"
-                        value={companyAddress}
-                        onChange={(e) => setCompanyAddress(e.target.value)}
+                      <Label htmlFor="streetAddress">Adresse *</Label>
+                      <Input
+                        id="streetAddress"
+                        type="text"
+                        placeholder="Numéro et nom de rue"
+                        value={streetAddress}
+                        onChange={(e) => setStreetAddress(e.target.value)}
                         required={isProfessional}
-                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="postalCode">Code postal *</Label>
+                        <Input
+                          id="postalCode"
+                          type="text"
+                          placeholder="75001"
+                          value={postalCode}
+                          onChange={(e) => setPostalCode(e.target.value)}
+                          required={isProfessional}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="city">Ville *</Label>
+                        <Input
+                          id="city"
+                          type="text"
+                          placeholder="Paris"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          required={isProfessional}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="country">Pays *</Label>
+                      <Input
+                        id="country"
+                        type="text"
+                        placeholder="France"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        required={isProfessional}
                       />
                     </div>
 

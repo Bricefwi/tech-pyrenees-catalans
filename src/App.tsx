@@ -15,6 +15,9 @@ import ServiceSuggestions from "./pages/ServiceSuggestions";
 import Contact from "./pages/Contact";
 import AdminSetup from "./pages/AdminSetup";
 import ProfileCompletion from "./pages/ProfileCompletion";
+import AdminRequestChat from "./pages/AdminRequestChat";
+import AdminQuote from "./pages/AdminQuote";
+import AdminIntervention from "./pages/AdminIntervention";
 import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
@@ -39,6 +42,9 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin-setup" element={<AdminSetup />} />
               <Route path="/profile-completion" element={<ProfileCompletion />} />
+              <Route path="/admin/request/:requestId" element={<AdminRequestChat />} />
+              <Route path="/admin/quote/:requestId" element={<AdminQuote />} />
+              <Route path="/admin/intervention/:requestId" element={<AdminIntervention />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

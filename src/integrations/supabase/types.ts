@@ -408,8 +408,9 @@ export type Database = {
       profiles: {
         Row: {
           business_sector: string | null
-          company_address: string | null
+          city: string | null
           company_name: string | null
+          country: string | null
           created_at: string | null
           email: string
           first_name: string | null
@@ -419,15 +420,18 @@ export type Database = {
           last_name: string | null
           mobile_phone: string | null
           phone: string | null
+          postal_code: string | null
           profile_completed: boolean | null
           siret_siren: string | null
+          street_address: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           business_sector?: string | null
-          company_address?: string | null
+          city?: string | null
           company_name?: string | null
+          country?: string | null
           created_at?: string | null
           email: string
           first_name?: string | null
@@ -437,15 +441,18 @@ export type Database = {
           last_name?: string | null
           mobile_phone?: string | null
           phone?: string | null
+          postal_code?: string | null
           profile_completed?: boolean | null
           siret_siren?: string | null
+          street_address?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           business_sector?: string | null
-          company_address?: string | null
+          city?: string | null
           company_name?: string | null
+          country?: string | null
           created_at?: string | null
           email?: string
           first_name?: string | null
@@ -455,8 +462,10 @@ export type Database = {
           last_name?: string | null
           mobile_phone?: string | null
           phone?: string | null
+          postal_code?: string | null
           profile_completed?: boolean | null
           siret_siren?: string | null
+          street_address?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -547,7 +556,9 @@ export type Database = {
           assigned_to: string | null
           business_sector: string | null
           client_user_id: string | null
+          confirmed_date: string | null
           created_at: string | null
+          date_status: string | null
           description: string | null
           device_info: Json | null
           estimated_cost: number | null
@@ -555,6 +566,7 @@ export type Database = {
           id: string
           priority: string
           profile_id: string | null
+          proposed_date: string | null
           service_type: string
           status: string
           title: string
@@ -565,7 +577,9 @@ export type Database = {
           assigned_to?: string | null
           business_sector?: string | null
           client_user_id?: string | null
+          confirmed_date?: string | null
           created_at?: string | null
+          date_status?: string | null
           description?: string | null
           device_info?: Json | null
           estimated_cost?: number | null
@@ -573,6 +587,7 @@ export type Database = {
           id?: string
           priority?: string
           profile_id?: string | null
+          proposed_date?: string | null
           service_type: string
           status?: string
           title: string
@@ -583,7 +598,9 @@ export type Database = {
           assigned_to?: string | null
           business_sector?: string | null
           client_user_id?: string | null
+          confirmed_date?: string | null
           created_at?: string | null
+          date_status?: string | null
           description?: string | null
           device_info?: Json | null
           estimated_cost?: number | null
@@ -591,6 +608,7 @@ export type Database = {
           id?: string
           priority?: string
           profile_id?: string | null
+          proposed_date?: string | null
           service_type?: string
           status?: string
           title?: string
