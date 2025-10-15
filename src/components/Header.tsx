@@ -48,7 +48,7 @@ const Header = () => {
             <button onClick={() => scrollToSection('zone')} className="text-sm font-medium hover:text-primary transition-colors">
               Zone
             </button>
-            <button onClick={() => scrollToSection('contact')} className="text-sm font-medium hover:text-primary transition-colors">
+            <button onClick={handleContactClick} className="text-sm font-medium hover:text-primary transition-colors">
               Contact
             </button>
             <Link to="/audit" className="text-sm font-medium hover:text-primary transition-colors">
@@ -57,7 +57,7 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Button onClick={() => scrollToSection('contact')} variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
+            <Button onClick={handleContactClick} variant="outline" size="sm" className="hidden sm:flex items-center gap-2">
               <Phone className="w-4 h-4" />
               <span className="hidden lg:inline">Contact</span>
             </Button>
