@@ -67,6 +67,7 @@ const Audit = () => {
     try {
       setViewMode(true);
       setShowCompanyForm(false);
+      setIsGeneratingReport(true);
       
       // Charger l'audit et les infos de l'entreprise
       const { data: audit, error: auditError } = await supabase
@@ -90,8 +91,30 @@ const Audit = () => {
         return;
       }
 
-      // Charger le rapport généré
-      setIsGeneratingReport(true);
+      const company = audit.audited_companies as any;
+      setCompanyInfo({
+        name: company?.name || "",
+        sector: company?.sector || "",
+        size: company?.size || "",
+        contactName: company?.contact_name || "",
+        contactEmail: company?.contact_email || "",
+        contactPhone: company?.contact_phone || ""
+      });
+
+      // Vérifier si un rapport a déjà été généré et mis en cache
+      // @ts-ignore
+      if (audit.generated_report) {
+        console.log("✅ Rapport trouvé en cache - chargement instantané");
+        // @ts-ignore
+        setAuditReport(audit.generated_report);
+        setIsGeneratingReport(false);
+        setIsLoading(false);
+        return;
+      }
+
+      // Sinon, générer le rapport (peut prendre du temps)
+      console.log("⏳ Génération d'un nouveau rapport avec l'IA...");
+      
       const { data: sectorsData } = await supabase.from("audit_sectors").select("*").order("order_index");
       const { data: questionsData } = await supabase.from("audit_questions").select("*").order("order_index");
       const { data: responsesData } = await supabase.from("audit_responses").select("*").eq("audit_id", auditId);
@@ -99,8 +122,6 @@ const Audit = () => {
         .from("sector_comments")
         .select(`comment, sector_id, audit_sectors!inner(name)`)
         .eq("audit_id", auditId);
-
-      const company = audit.audited_companies as any;
       
       // Générer le rapport
       const { data: reportData, error: reportError } = await supabase.functions.invoke(
@@ -131,14 +152,23 @@ const Audit = () => {
       if (reportError) throw reportError;
       
       setAuditReport(reportData.report);
-      setCompanyInfo({
-        name: company?.name || "",
-        sector: company?.sector || "",
-        size: company?.size || "",
-        contactName: company?.contact_name || "",
-        contactEmail: company?.contact_email || "",
-        contactPhone: company?.contact_phone || ""
-      });
+      
+      // Sauvegarder le rapport en cache pour les prochaines visualisations
+      const { error: updateError } = await supabase
+        .from("audits")
+        // @ts-ignore
+        .update({ 
+          generated_report: reportData.report,
+          report_generated_at: new Date().toISOString()
+        })
+        .eq("id", auditId);
+      
+      if (updateError) {
+        console.error("⚠️ Erreur sauvegarde du rapport en cache:", updateError);
+      } else {
+        console.log("✅ Rapport sauvegardé en cache pour les prochaines consultations");
+      }
+      
     } catch (error: any) {
       console.error("Error loading existing audit:", error);
       toast({
@@ -581,15 +611,28 @@ const Audit = () => {
                   )}
                 </CardHeader>
                  <CardContent className="space-y-6">
-                  {auditReport ? (
+                  {isGeneratingReport ? (
+                    <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+                      <div className="text-center space-y-2">
+                        <p className="text-lg font-semibold">Génération du rapport en cours...</p>
+                        <p className="text-sm text-muted-foreground">
+                          L'IA analyse vos réponses et prépare votre rapport personnalisé.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Cela peut prendre 30-60 secondes. Merci de patienter.
+                        </p>
+                      </div>
+                    </div>
+                  ) : auditReport ? (
                     <div className="w-full">
                       <div 
                         className="bg-background p-6 rounded-lg shadow-sm"
                         dangerouslySetInnerHTML={{ __html: auditReport }}
                       />
                       <div className="flex gap-4 mt-6">
-                        <Button onClick={() => navigate("/")}>
-                          Retour à l'accueil
+                        <Button onClick={() => navigate("/client-dashboard")}>
+                          Retour au tableau de bord
                         </Button>
                         <Button 
                           variant="outline"

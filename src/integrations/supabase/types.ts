@@ -212,8 +212,10 @@ export type Database = {
           created_by: string | null
           current_question_index: number | null
           current_sector: string | null
+          generated_report: string | null
           global_score: number | null
           id: string
+          report_generated_at: string | null
           status: string | null
           updated_at: string | null
         }
@@ -224,8 +226,10 @@ export type Database = {
           created_by?: string | null
           current_question_index?: number | null
           current_sector?: string | null
+          generated_report?: string | null
           global_score?: number | null
           id?: string
+          report_generated_at?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -236,8 +240,10 @@ export type Database = {
           created_by?: string | null
           current_question_index?: number | null
           current_sector?: string | null
+          generated_report?: string | null
           global_score?: number | null
           id?: string
+          report_generated_at?: string | null
           status?: string | null
           updated_at?: string | null
         }
