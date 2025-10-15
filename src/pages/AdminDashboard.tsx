@@ -10,18 +10,13 @@ import {
   Calendar, 
   Clock, 
   CheckCircle2, 
-  AlertCircle, 
-  TrendingUp,
+  AlertCircle,
   Users,
   FileText,
   ArrowLeft,
-  Wrench,
-  LayoutDashboard,
-  Building2,
-  Receipt,
-  LogOut
+  Wrench
 } from "lucide-react";
-import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const AdminDashboard = () => {
@@ -248,45 +243,21 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar CRM Nav - on importe le composant */}
-      <div className="w-64 bg-card border-r p-4 space-y-2">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold px-3 mb-1">CRM Admin</h2>
-          <p className="text-sm text-muted-foreground px-3">Gestion complète</p>
-        </div>
-        <nav className="space-y-1">
-          <Button variant="default" className="w-full justify-start" onClick={() => navigate("/admin")}>
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            Tableau de bord
-          </Button>
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/admin/companies")}>
-            <Building2 className="mr-2 h-4 w-4" />
-            Entreprises
-          </Button>
-          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate("/admin/quotes")}>
-            <Receipt className="mr-2 h-4 w-4" />
-            Devis
-          </Button>
-        </nav>
-        <div className="pt-4 border-t mt-4">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-destructive hover:text-destructive"
-            onClick={() => supabase.auth.signOut().then(() => navigate("/"))}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate("/")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour
+            </Button>
+            <h1 className="text-3xl font-bold">Dashboard Admin</h1>
+          </div>
+          <Button onClick={() => supabase.auth.signOut().then(() => navigate("/"))}>
             Déconnexion
           </Button>
         </div>
-      </div>
-
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Dashboard Admin</h1>
-          </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -581,7 +552,7 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Charge de travail</span>
-                      <TrendingUp className="w-4 h-4 text-primary" />
+                      <Calendar className="w-4 h-4 text-primary" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -604,7 +575,6 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
-        </div>
       </div>
     </div>
   );
