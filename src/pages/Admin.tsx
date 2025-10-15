@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, MessageSquare, FileText, Calendar } from "lucide-react";
+import { LogOut, MessageSquare, FileText, Calendar, Sparkles } from "lucide-react";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -197,7 +197,7 @@ const Admin = () => {
                             {request.profiles?.phone && <span>Tél: {request.profiles?.phone}</span>}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button
                             size="sm"
                             variant="outline"
@@ -205,6 +205,14 @@ const Admin = () => {
                           >
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Chat
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/admin/proposal/${request.id}`)}
+                          >
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Propositions IA
                           </Button>
                           <Button
                             size="sm"
@@ -249,7 +257,7 @@ const Admin = () => {
                               {request.profiles?.phone && <span>Tél: {request.profiles?.phone}</span>}
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <Button
                               size="sm"
                               variant="outline"
@@ -257,6 +265,14 @@ const Admin = () => {
                             >
                               <MessageSquare className="mr-2 h-4 w-4" />
                               Chat
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/admin/proposal/${request.id}`)}
+                            >
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Propositions IA
                             </Button>
                             <Button
                               size="sm"
@@ -301,7 +317,7 @@ const Admin = () => {
                               {request.profiles?.phone && <span>Tél: {request.profiles?.phone}</span>}
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <Button
                               size="sm"
                               variant="outline"
@@ -309,6 +325,14 @@ const Admin = () => {
                             >
                               <MessageSquare className="mr-2 h-4 w-4" />
                               Chat
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/admin/proposal/${request.id}`)}
+                            >
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              Propositions IA
                             </Button>
                             <Button
                               size="sm"
