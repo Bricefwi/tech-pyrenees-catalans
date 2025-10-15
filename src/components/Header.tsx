@@ -10,6 +10,7 @@ const Header = () => {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,12 +27,35 @@ const Header = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserEmail(user.email || null);
+        
+        // Vérifier si l'utilisateur est admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        setIsAdmin(!!roleData);
       }
     };
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUserEmail(session?.user?.email || null);
+      
+      if (session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        setIsAdmin(!!roleData);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -88,6 +112,11 @@ const Header = () => {
             <Link to="/audit" className="text-sm font-medium hover:text-primary transition-colors">
               Audit Entreprise
             </Link>
+            {isAdmin && (
+              <Link to="/admin" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors font-semibold">
+                Admin
+              </Link>
+            )}
             <Link to="/admin-setup" className="text-sm font-medium hover:text-primary transition-colors">
               Configuration Admin
             </Link>
@@ -99,7 +128,11 @@ const Header = () => {
               <span className="hidden lg:inline">Contact</span>
             </Button>
             {userEmail ? (
-              <Button onClick={() => navigate('/client-dashboard')} size="sm" className="bg-gradient-catalan text-primary-foreground hover:opacity-90">
+              <Button 
+                onClick={() => navigate(isAdmin ? '/admin' : '/client-dashboard')} 
+                size="sm" 
+                className="bg-gradient-catalan text-primary-foreground hover:opacity-90"
+              >
                 <User className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">{userEmail}</span>
               </Button>
