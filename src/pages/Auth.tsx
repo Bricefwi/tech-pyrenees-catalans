@@ -82,10 +82,13 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      const redirectUrl = `${window.location.origin}/profile-completion`;
+      
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             full_name: signupName,
             phone: signupPhone,
@@ -119,11 +122,14 @@ const Auth = () => {
         if (roleError) throw roleError;
 
         toast({
-          title: "Compte créé",
-          description: "Complétez maintenant votre profil",
+          title: "Compte créé avec succès",
+          description: "Vous pouvez maintenant compléter votre profil",
         });
 
-        navigate("/profile-completion");
+        // Navigate after a short delay to ensure auth state is updated
+        setTimeout(() => {
+          navigate("/profile-completion");
+        }, 500);
       }
     } catch (error: any) {
       toast({
