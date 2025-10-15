@@ -3,11 +3,13 @@ import { Phone, User } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -17,6 +19,22 @@ const Header = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
+  }, []);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || null);
+      }
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email || null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const scrollToSection = (id: string) => {
@@ -80,10 +98,17 @@ const Header = () => {
               <Phone className="w-4 h-4" />
               <span className="hidden lg:inline">Contact</span>
             </Button>
-            <Button onClick={() => navigate('/auth')} size="sm" className="bg-gradient-catalan text-primary-foreground hover:opacity-90">
-              <User className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Connexion</span>
-            </Button>
+            {userEmail ? (
+              <Button onClick={() => navigate('/client-dashboard')} size="sm" className="bg-gradient-catalan text-primary-foreground hover:opacity-90">
+                <User className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{userEmail}</span>
+              </Button>
+            ) : (
+              <Button onClick={() => navigate('/auth')} size="sm" className="bg-gradient-catalan text-primary-foreground hover:opacity-90">
+                <User className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Connexion</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>

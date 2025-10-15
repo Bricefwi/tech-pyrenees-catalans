@@ -14,10 +14,12 @@ const ClientDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [serviceRequests, setServiceRequests] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [audits, setAudits] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
     loadServiceRequests();
+    loadAudits();
   }, []);
 
   const checkAuth = async () => {
@@ -64,6 +66,27 @@ const ClientDashboard = () => {
     }
   };
 
+  const loadAudits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("audits")
+        .select(`
+          *,
+          audited_companies(name)
+        `)
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setAudits(data || []);
+    } catch (error: any) {
+      console.error("Error loading audits:", error);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -94,11 +117,15 @@ const ClientDashboard = () => {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Mes demandes</h1>
+            <h1 className="text-3xl font-bold">Tableau de Bord Client</h1>
             <div className="flex gap-2">
               <Button onClick={() => navigate("/")}>
                 <Home className="mr-2 h-4 w-4" />
                 Accueil
+              </Button>
+              <Button onClick={() => navigate("/audit")}>
+                <FileText className="mr-2 h-4 w-4" />
+                Nouvel Audit
               </Button>
               <Button onClick={() => navigate("/create-request")}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -111,7 +138,61 @@ const ClientDashboard = () => {
             </div>
           </div>
 
+          {/* Audits Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Mes Audits Numériques</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {audits.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">Aucun audit réalisé</p>
+                  <Button onClick={() => navigate("/audit")}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Démarrer un Audit
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {audits.map((audit) => (
+                    <div key={audit.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">
+                          {audit.audited_companies?.name || "Entreprise"}
+                        </h3>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant={audit.status === "completed" ? "default" : "secondary"}>
+                            {audit.status === "completed" ? "Complété" : "En cours"}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(audit.created_at).toLocaleDateString('fr-FR')}
+                          </span>
+                        </div>
+                        {audit.global_score && (
+                          <div className="mt-2">
+                            <span className="text-sm font-medium">Score global: </span>
+                            <span className="text-xl font-bold text-primary">
+                              {Math.round(audit.global_score)}/100
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {audit.status === "completed" && (
+                        <Button onClick={() => navigate(`/audit?view=${audit.id}`)}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Voir le Rapport
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
         {/* Service Requests */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Mes Demandes de Service</h2>
         <div className="space-y-4">
           {serviceRequests.length === 0 ? (
             <Card>
@@ -190,6 +271,7 @@ const ClientDashboard = () => {
               </Card>
             ))
           )}
+          </div>
         </div>
         </div>
       </div>
