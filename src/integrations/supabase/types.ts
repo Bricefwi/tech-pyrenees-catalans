@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_proposals: {
+        Row: {
+          business_sector: string | null
+          client_user_id: string
+          company_id: string | null
+          created_at: string | null
+          created_by: string
+          id: string
+          profile_id: string | null
+          proposal_number: string | null
+          proposals: string
+          service_request_id: string
+          service_type: string
+          specifications: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_sector?: string | null
+          client_user_id: string
+          company_id?: string | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          profile_id?: string | null
+          proposal_number?: string | null
+          proposals: string
+          service_request_id: string
+          service_type: string
+          specifications: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_sector?: string | null
+          client_user_id?: string
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          profile_id?: string | null
+          proposal_number?: string | null
+          proposals?: string
+          service_request_id?: string
+          service_type?: string
+          specifications?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_proposals_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_proposals_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_questions: {
         Row: {
           created_at: string | null
@@ -897,6 +970,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_ai_proposal_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_invoice_number: {
         Args: Record<PropertyKey, never>
         Returns: string

@@ -20,66 +20,65 @@ serve(async (req) => {
 
     console.log('Génération propositions commerciales pour service:', serviceType);
 
-    // Prompt pour générer des propositions commerciales
-    const systemPrompt = `Tu es un expert en transformation digitale, No-Code, et IA avec une approche commerciale et technique.
+    // Prompt pour générer des propositions commerciales orientées organisation
+    const systemPrompt = `Tu es un expert en transformation digitale et conseil en organisation.
+Ton rôle est d'analyser les besoins d'un client et de proposer des solutions organisationnelles et digitales concrètes.
 
-Ton rôle est d'analyser le cahier des charges client et de proposer des SOLUTIONS CONCRÈTES pour accompagner leur transformation digitale.
+IMPORTANT - Structure de la réponse:
+- Utilise des titres et sous-titres clairs (##, ###)
+- Utilise des puces (•) pour lister les éléments importants
+- Crée une hiérarchie claire avec des paragraphes bien structurés
+- Formate le texte pour qu'il soit professionnel et lisible
 
-Tu dois générer un document de PROPOSITIONS COMMERCIALES au format suivant:
+Format de réponse attendu:
+Propose 2-3 solutions principales en te concentrant sur:
 
-# PROPOSITIONS DE SOLUTIONS DIGITALES
+Pour chaque solution:
+## [Titre de la Solution]
 
-## 1. ANALYSE DU BESOIN
-- Résumé de la problématique client
-- Enjeux identifiés
-- Opportunités de transformation
+### Organisation et Processus
+• Comment réorganiser les flux de travail
+• Amélioration de l'efficacité opérationnelle
+• Impact sur la collaboration
 
-## 2. SOLUTIONS PROPOSÉES
+### Gains Organisationnels Estimés
+• Productivité: [X% à Y%] d'amélioration potentielle
+• Efficacité: réduction des tâches manuelles de [X% à Y%]
+• Qualité: amélioration de [X% à Y%]
 
-### Solution 1: [Nom de la solution]
-**Type:** No-Code / IA / Développement Custom / Hybride
-**Description:** Description détaillée de la solution
-**Technologies/Outils suggérés:** Liste des outils (Make, Zapier, Bubble, GPT, etc.)
-**Fonctionnalités clés:**
-- Fonctionnalité 1
-- Fonctionnalité 2
-- ...
+### Approche Technique
+• Architecture et technologies recommandées (stratégique, sans noms d'outils)
+• Infrastructure et intégrations nécessaires
+• Sécurité et scalabilité
 
-**Gains attendus:**
-- Gain en temps: XX%
-- Réduction coûts: XX%
-- Autres bénéfices mesurables
+### Méthodologie de Mise en Œuvre
+• Phase 1: [Description]
+• Phase 2: [Description]
+• Phase 3: [Description]
 
-**Budget estimatif:** Fourchette de prix
-**Délai de mise en œuvre:** X semaines/mois
+RÈGLES STRICTES:
+- JAMAIS de chiffres absolus pour les gains (pas de "économie de 10000€" ou "50 heures économisées")
+- TOUJOURS des pourcentages potentiels réalistes et prudents (ex: "15% à 25%", "20% à 35%")
+- Focus sur l'ORGANISATION et la TRANSFORMATION des processus
+- Reste générique sur la technique, évite les noms d'applications ou outils spécifiques
+- Ton professionnel, factuel, orienté résultats mesurables
+- Pas de promesses démesurées, sois réaliste et prudent
 
-### Solution 2: [Alternative ou complémentaire]
-[Même structure]
+Ton ton doit être:
+- Professionnel et stratégique
+- Orienté valeur business et ROI organisationnel
+- Concret avec des métriques en pourcentages
+- Rassurant sur la méthodologie
 
-## 3. PLAN DE MISE EN ŒUVRE RECOMMANDÉ
-### Phase 1: POC/Prototype (X semaines)
-### Phase 2: Déploiement (X semaines)
-### Phase 3: Optimisation et formation
+Ne propose jamais de prix, de délais précis ou de gains chiffrés en valeur absolue.`;
 
-## 4. ROI ESTIMÉ
-- Investissement total estimé
-- Gains annuels estimés
-- ROI sur 12/24/36 mois
-
-## 5. PROCHAINES ÉTAPES
-- Actions recommandées
-- Points à valider avec le client
-- Opportunités d'audit approfondi
-
-Sois CONCRET, COMMERCIAL et orienté RÉSULTATS. Propose des solutions réalistes qui génèrent de la valeur mesurable.`;
-
-    const userPrompt = `Voici le cahier des charges client pour un projet "${serviceType}":
+    const userPrompt = `Voici le cahier des charges pour un projet "${serviceType}":
 
 ${specifications}
 
 ${clientInfo ? `Informations client:\n${clientInfo}\n` : ''}
 
-Génère maintenant les propositions commerciales complètes avec des solutions No-Code, IA et/ou développement adaptées.`;
+Génère des propositions de solutions organisationnelles et digitales avec des gains exprimés en pourcentages potentiels réalistes et prudents.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',

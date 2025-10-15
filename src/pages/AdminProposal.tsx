@@ -64,8 +64,13 @@ const AdminProposal = () => {
         profiles (
           full_name,
           email,
+          phone,
+          street_address,
+          postal_code,
+          city,
           is_professional,
           companies (
+            id,
             name,
             is_individual,
             business_sector
@@ -84,9 +89,22 @@ const AdminProposal = () => {
       return;
     }
 
-    setRequestDetails(data);
+    // Charger la dernière proposition IA si elle existe
+    const { data: proposalData } = await supabase
+      .from("ai_proposals")
+      .select("*")
+      .eq("service_request_id", requestId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    setRequestDetails({
+      ...data,
+      latestProposal: proposalData
+    });
+    
     // @ts-ignore - Column will be added via migration
-    setProposals(data.admin_ai_proposals || "");
+    setProposals(proposalData?.proposals || data.admin_ai_proposals || "");
   };
 
   const handleGenerateProposals = async () => {
@@ -147,17 +165,40 @@ Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email
   const handleSaveProposals = async () => {
     setIsSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      // Insérer dans la table ai_proposals
       const { error } = await supabase
-        .from("service_requests")
-        // @ts-ignore - Column will be added via migration
-        .update({ admin_ai_proposals: proposals })
-        .eq("id", requestId);
+        .from("ai_proposals")
+        .insert({
+          service_request_id: requestId,
+          client_user_id: requestDetails.client_user_id,
+          profile_id: requestDetails.profile_id,
+          company_id: requestDetails.profiles?.companies?.id,
+          service_type: requestDetails.service_type,
+          title: requestDetails.title,
+          business_sector: requestDetails.profiles?.companies?.business_sector,
+          // @ts-ignore
+          specifications: requestDetails.ai_specifications || requestDetails.description || "",
+          proposals: proposals,
+          created_by: user.id
+        });
 
       if (error) throw error;
 
+      // Mettre à jour aussi service_requests pour compatibilité
+      await supabase
+        .from("service_requests")
+        // @ts-ignore
+        .update({ admin_ai_proposals: proposals })
+        .eq("id", requestId);
+
+      await loadRequestData(); // Recharger pour avoir le proposal_number
+
       toast({
         title: "Sauvegardé",
-        description: "Les propositions ont été enregistrées",
+        description: "La proposition commerciale a été enregistrée avec succès",
       });
     } catch (error: any) {
       toast({
@@ -180,17 +221,26 @@ Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email
       return;
     }
 
+    const profile = requestDetails.profiles;
+    const company = profile?.companies;
+    
     generateProposalPDF({
-      clientName: requestDetails.profiles?.full_name || "Client",
-      companyName: requestDetails.profiles?.companies?.name,
-      isIndividual: requestDetails.profiles?.companies?.is_individual || false,
-      businessSector: requestDetails.profiles?.companies?.business_sector,
+      clientName: profile?.full_name || "Client",
+      companyName: company?.name,
+      isIndividual: company?.is_individual || false,
+      businessSector: company?.business_sector,
       serviceType: requestDetails.service_type,
       title: requestDetails.title,
       // @ts-ignore
       specifications: requestDetails.ai_specifications || requestDetails.description || "",
       proposals: proposals,
       requestNumber: requestDetails.request_number,
+      proposalNumber: requestDetails.latestProposal?.proposal_number,
+      clientAddress: profile?.street_address && profile?.postal_code && profile?.city
+        ? `${profile.street_address}, ${profile.postal_code} ${profile.city}`
+        : undefined,
+      clientEmail: profile?.email,
+      clientPhone: profile?.phone,
     });
 
     toast({
