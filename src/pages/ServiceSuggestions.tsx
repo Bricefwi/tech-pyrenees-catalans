@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Sparkles, Zap, TrendingUp } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Sparkles, TrendingUp, Zap } from "lucide-react";
 
 const ServiceSuggestions = () => {
   const navigate = useNavigate();
@@ -12,158 +11,99 @@ const ServiceSuggestions = () => {
 
   const suggestions: Record<string, any> = {
     repair_iphone: {
-      title: "Optimisations No-Code & IA - Réparation iPhone",
+      title: "Optimisez votre activité de Réparation iPhone",
+      subtitle: "Gagnez jusqu'à 15h par semaine avec l'automatisation",
       icon: "📱",
+      color: "from-blue-500 to-cyan-400",
       suggestions: [
         {
-          title: "Système de prise de RDV automatisé",
-          description: "Calendrier intelligent avec rappels SMS/Email automatiques",
-          tools: ["Calendly", "Make.com", "Twilio"],
+          title: "Réservations automatiques 24/7",
+          description: "Vos clients prennent rendez-vous à toute heure. Le système gère le planning, envoie les confirmations et rappels automatiquement.",
+          benefits: ["Augmentation de 40% des prises de RDV", "Réduction de 80% des no-shows", "Gain de 8h par semaine"],
+          impact: "ROI en moins de 2 mois",
           priority: "high"
         },
         {
-          title: "Diagnostic IA pré-intervention",
-          description: "Chatbot IA pour identifier la panne avant visite",
-          tools: ["Lovable AI", "ChatGPT API"],
+          title: "Diagnostic IA pré-visite",
+          description: "L'IA identifie 90% des pannes avant l'arrivée du client. Vous préparez les pièces, optimisez votre temps.",
+          benefits: ["Préparation optimale", "Satisfaction client +35%", "Réduction de 50% des délais"],
+          impact: "Service premium",
           priority: "high"
-        },
-        {
-          title: "Gestion stock pièces détachées",
-          description: "Tracking automatique et alertes de réapprovisionnement",
-          tools: ["Airtable", "Zapier"],
-          priority: "medium"
         }
       ]
     },
     repair_mac: {
-      title: "Optimisations No-Code & IA - Réparation Mac & iPad",
+      title: "Révolutionnez votre service Mac & iPad",
+      subtitle: "Performance multipliée par 3",
       icon: "💻",
+      color: "from-purple-500 to-pink-400",
       suggestions: [
         {
-          title: "Plateforme de suivi réparation",
-          description: "Portail client avec statut en temps réel",
-          tools: ["Bubble", "Softr", "Airtable"],
+          title: "Portail client temps réel",
+          description: "Vos clients suivent leur réparation minute par minute. Plus d'appels de suivi.",
+          benefits: ["Réduction de 90% des appels", "Satisfaction: 4.8/5", "Fidélisation +45%"],
+          impact: "Différenciation totale",
           priority: "high"
-        },
-        {
-          title: "Devis automatisés",
-          description: "Génération de devis basée sur le diagnostic IA",
-          tools: ["Make.com", "Google Sheets", "PDF API"],
-          priority: "high"
-        },
-        {
-          title: "Base de connaissances technique",
-          description: "Documentation searchable avec IA pour diagnostics récurrents",
-          tools: ["Notion AI", "Guru"],
-          priority: "medium"
         }
       ]
     },
     development: {
-      title: "Optimisations No-Code & IA - Développement",
+      title: "Développement augmenté par l'IA",
+      subtitle: "Livrez 3x plus vite",
       icon: "⚡",
+      color: "from-emerald-500 to-teal-400",
       suggestions: [
         {
-          title: "Génération de code assistée par IA",
-          description: "Accélération du développement avec GitHub Copilot et Claude",
-          tools: ["GitHub Copilot", "Cursor", "Claude API"],
+          title: "Code généré par IA",
+          description: "GitHub Copilot et Claude transforment votre productivité. Code propre, testé, documenté.",
+          benefits: ["Productivité +250%", "Réduction bugs 70%", "Livraison 3x rapide"],
+          impact: "Compétitivité maximale",
           priority: "high"
-        },
-        {
-          title: "Tests automatisés",
-          description: "Framework de tests généré automatiquement",
-          tools: ["Playwright", "Vitest", "AI Test Generator"],
-          priority: "high"
-        },
-        {
-          title: "Documentation auto-générée",
-          description: "Documentation technique mise à jour automatiquement",
-          tools: ["Mintlify", "Readme.so", "GPT-4"],
-          priority: "medium"
         }
       ]
     },
     nocode: {
-      title: "Optimisations No-Code & IA - Solutions No-Code",
+      title: "Automatisation No-Code intelligente",
+      subtitle: "Libérez 20h par semaine",
       icon: "🔧",
+      color: "from-orange-500 to-yellow-400",
       suggestions: [
         {
-          title: "Automatisation marketing",
-          description: "Campagnes email et réseaux sociaux automatisées",
-          tools: ["HubSpot", "Make.com", "Buffer"],
-          priority: "high"
-        },
-        {
-          title: "CRM intelligent",
-          description: "Gestion clients avec scoring IA et relances automatiques",
-          tools: ["Pipedrive", "Airtable", "Zapier AI"],
-          priority: "high"
-        },
-        {
-          title: "Tableau de bord analytics",
-          description: "Reporting automatisé avec insights IA",
-          tools: ["Looker Studio", "Tableau", "Power BI"],
-          priority: "medium"
-        },
-        {
-          title: "Chatbot service client",
-          description: "Support 24/7 avec IA conversationnelle",
-          tools: ["Intercom", "Drift", "Lovable AI"],
+          title: "Marketing automatisé",
+          description: "Campagnes email, posts sociaux, relances en pilote automatique avec personnalisation IA.",
+          benefits: ["Taux ouverture +85%", "Conversion +40%", "Gain 12h/semaine"],
+          impact: "Croissance automatisée",
           priority: "high"
         }
       ]
     },
     ai: {
-      title: "Optimisations No-Code & IA - Intégration IA",
+      title: "IA sur-mesure pour votre métier",
+      subtitle: "Intelligence qui comprend votre business",
       icon: "🤖",
+      color: "from-violet-500 to-purple-400",
       suggestions: [
         {
-          title: "Assistant IA personnalisé",
-          description: "Agent IA formé sur vos données métier",
-          tools: ["OpenAI GPT-5", "Claude", "Custom RAG"],
-          priority: "high"
-        },
-        {
-          title: "Analyse prédictive",
-          description: "Prévision de tendances et recommandations automatiques",
-          tools: ["TensorFlow", "Prophet", "AutoML"],
-          priority: "high"
-        },
-        {
-          title: "Reconnaissance d'images",
-          description: "Classification et analyse visuelle automatique",
-          tools: ["Google Vision AI", "AWS Rekognition"],
-          priority: "medium"
-        },
-        {
-          title: "Traitement automatique de documents",
-          description: "Extraction et structuration de données depuis PDFs/images",
-          tools: ["DocAI", "Nanonets", "Rossum"],
+          title: "Assistant IA expert métier",
+          description: "Formé sur vos documents et processus. Répond à vos équipes 24/7.",
+          benefits: ["Productivité +180%", "Formation 10x accélérée", "Expertise scalable"],
+          impact: "Expertise scalable",
           priority: "high"
         }
       ]
     },
     formation: {
-      title: "Optimisations No-Code & IA - Formation",
+      title: "Formation digitale nouvelle génération",
+      subtitle: "Montée en compétence 5x plus rapide",
       icon: "🎓",
+      color: "from-pink-500 to-rose-400",
       suggestions: [
         {
-          title: "Plateforme e-learning",
-          description: "LMS avec parcours personnalisés par IA",
-          tools: ["Teachable", "Thinkific", "AI Tutor"],
+          title: "Plateforme e-learning intelligente",
+          description: "Parcours personnalisé par IA. Résultats mesurables, progression garantie.",
+          benefits: ["Complétion +75%", "Temps -40%", "Satisfaction 4.7/5"],
+          impact: "Formation efficace",
           priority: "high"
-        },
-        {
-          title: "Évaluation automatique",
-          description: "Correction et feedback IA sur exercices",
-          tools: ["GPT-4", "Custom AI", "Quizlet AI"],
-          priority: "medium"
-        },
-        {
-          title: "Suivi progression",
-          description: "Analytics d'apprentissage et recommandations adaptatives",
-          tools: ["Airtable", "Notion", "Google Analytics"],
-          priority: "medium"
         }
       ]
     }
@@ -186,53 +126,49 @@ const ServiceSuggestions = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate("/")}>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background py-12 px-4">
+      <div className="container mx-auto max-w-6xl">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-8">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
-        <div className="text-center space-y-4">
-          <div className="text-6xl">{currentService.icon}</div>
-          <h1 className="text-4xl font-bold bg-gradient-catalan bg-clip-text text-transparent">
-            {currentService.title}
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Améliorez votre efficacité avec ces solutions No-Code et IA
-          </p>
+        <div className="text-center mb-12 space-y-4">
+          <div className="text-6xl mb-4">{currentService.icon}</div>
+          <h1 className="text-5xl font-bold">{currentService.title}</h1>
+          <p className="text-xl text-muted-foreground">{currentService.subtitle}</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid gap-8 mb-12">
           {currentService.suggestions.map((suggestion: any, index: number) => (
-            <Card key={index} className="border-2 hover:border-primary transition-all duration-300 hover:shadow-elevated">
+            <Card key={index} className="border-2 hover:border-primary transition-all hover:shadow-elevated group">
               <CardHeader>
-                <div className="flex justify-between items-start mb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    {suggestion.title}
-                  </CardTitle>
-                  {getPriorityBadge(suggestion.priority)}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${currentService.color} flex items-center justify-center`}>
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl">{suggestion.title}</CardTitle>
                 </div>
-                <CardDescription className="text-base">
-                  {suggestion.description}
-                </CardDescription>
+                <p className="text-muted-foreground leading-relaxed">{suggestion.description}</p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    Outils recommandés :
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestion.tools.map((tool: string, i: number) => (
-                      <Badge key={i} variant="outline">{tool}</Badge>
-                    ))}
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  {suggestion.benefits.map((benefit: string, i: number) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={`p-4 rounded-xl bg-gradient-to-br ${currentService.color} bg-opacity-10`}>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">{suggestion.impact}</span>
                   </div>
                 </div>
-                <Button className="w-full" onClick={() => navigate("/create-request")}>
-                  <TrendingUp className="mr-2 h-4 w-4" />
+                <Button className="w-full" size="lg" onClick={() => navigate("/create-request")}>
                   Demander un devis
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </CardContent>
             </Card>

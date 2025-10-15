@@ -11,6 +11,7 @@ import ClientDashboard from "./pages/ClientDashboard";
 import Audit from "./pages/Audit";
 import CreateRequest from "./pages/CreateRequest";
 import ServiceSuggestions from "./pages/ServiceSuggestions";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/audit" element={<Audit />} />
           <Route path="/create-request" element={<CreateRequest />} />
           <Route path="/service-suggestions" element={<ServiceSuggestions />} />
+          <Route path="/contact" element={<Contact />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

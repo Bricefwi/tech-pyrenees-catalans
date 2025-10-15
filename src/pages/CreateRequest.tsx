@@ -150,7 +150,7 @@ const CreateRequest = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate("/client-dashboard")}>
+        <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
