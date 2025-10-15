@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import ClientDashboard from "./pages/ClientDashboard";
 import Audit from "./pages/Audit";
+import CreateRequest from "./pages/CreateRequest";
+import ServiceSuggestions from "./pages/ServiceSuggestions";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/admin" element={<Admin />} />
           <Route path="/client-dashboard" element={<ClientDashboard />} />
           <Route path="/audit" element={<Audit />} />
+          <Route path="/create-request" element={<CreateRequest />} />
+          <Route path="/service-suggestions" element={<ServiceSuggestions />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

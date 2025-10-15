@@ -1,22 +1,29 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, Laptop, Code, Workflow, Brain, GraduationCap } from "lucide-react";
+import { Smartphone, Laptop, Code, Workflow, Brain, GraduationCap, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Services = () => {
+  const navigate = useNavigate();
+
   const technicalServices = [
     {
       icon: Smartphone,
       title: "Réparation iPhone",
-      description: "Écran, batterie, caméra, carte mère - Intervention rapide avec pièces d'origine"
+      description: "Écran, batterie, caméra, carte mère - Intervention rapide avec pièces d'origine",
+      type: "repair_iphone"
     },
     {
       icon: Laptop,
       title: "Réparation Mac & iPad",
-      description: "Diagnostics avancés, remplacement composants, optimisation performances"
+      description: "Diagnostics avancés, remplacement composants, optimisation performances",
+      type: "repair_mac"
     },
     {
       icon: Code,
       title: "Développement",
-      description: "Applications web, mobile, automatisations personnalisées"
+      description: "Applications web, mobile, automatisations personnalisées",
+      type: "development"
     }
   ];
 
@@ -24,17 +31,20 @@ const Services = () => {
     {
       icon: Workflow,
       title: "Solutions No-Code",
-      description: "Automatisation de vos processus métier sans développement complexe"
+      description: "Automatisation de vos processus métier sans développement complexe",
+      type: "nocode"
     },
     {
       icon: Brain,
       title: "Intégration IA",
-      description: "Chatbots intelligents, analyse de données, automatisation cognitive"
+      description: "Chatbots intelligents, analyse de données, automatisation cognitive",
+      type: "ai"
     },
     {
       icon: GraduationCap,
       title: "Formation",
-      description: "Montée en compétence de vos équipes sur les outils digitaux"
+      description: "Montée en compétence de vos équipes sur les outils digitaux",
+      type: "formation"
     }
   ];
 
@@ -69,8 +79,16 @@ const Services = () => {
                   </div>
                   <CardTitle className="text-xl">{service.title}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <CardDescription className="text-base">{service.description}</CardDescription>
+                  <Button 
+                    variant="outline" 
+                    className="w-full group/btn"
+                    onClick={() => navigate(`/service-suggestions?type=${service.type}`)}
+                  >
+                    Voir les améliorations
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -96,8 +114,16 @@ const Services = () => {
                   </div>
                   <CardTitle className="text-xl">{service.title}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <CardDescription className="text-base">{service.description}</CardDescription>
+                  <Button 
+                    variant="outline" 
+                    className="w-full group/btn"
+                    onClick={() => navigate(`/service-suggestions?type=${service.type}`)}
+                  >
+                    Voir les améliorations
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </Button>
                 </CardContent>
               </Card>
             ))}

@@ -93,7 +93,7 @@ const ClientDashboard = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Mes demandes</h1>
           <div className="flex gap-2">
-            <Button onClick={() => navigate("/")}>
+            <Button onClick={() => navigate("/create-request")}>
               <Plus className="mr-2 h-4 w-4" />
               Nouvelle demande
             </Button>
@@ -110,7 +110,7 @@ const ClientDashboard = () => {
             <Card>
               <CardContent className="p-8 text-center">
                 <p className="text-muted-foreground">Vous n'avez pas encore de demandes</p>
-                <Button className="mt-4" onClick={() => navigate("/")}>
+                <Button className="mt-4" onClick={() => navigate("/create-request")}>
                   Créer une demande
                 </Button>
               </CardContent>
