@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, Save } from "lucide-react";
+import { ArrowLeft, Sparkles, Save, FileDown } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { generateProposalPDF } from "@/components/admin/ProposalPDFGenerator";
 
 const AdminProposal = () => {
   const { requestId } = useParams();
@@ -169,6 +170,35 @@ Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (!requestDetails || !proposals) {
+      toast({
+        title: "Impossible de générer le PDF",
+        description: "Veuillez d'abord générer ou saisir des propositions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    generateProposalPDF({
+      clientName: requestDetails.profiles?.full_name || "Client",
+      companyName: requestDetails.profiles?.companies?.name,
+      isIndividual: requestDetails.profiles?.companies?.is_individual || false,
+      businessSector: requestDetails.profiles?.companies?.business_sector,
+      serviceType: requestDetails.service_type,
+      title: requestDetails.title,
+      // @ts-ignore
+      specifications: requestDetails.ai_specifications || requestDetails.description || "",
+      proposals: proposals,
+      requestNumber: requestDetails.request_number,
+    });
+
+    toast({
+      title: "PDF généré",
+      description: "Le document commercial a été téléchargé avec succès",
+    });
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
   }
@@ -259,15 +289,27 @@ Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email
                     />
                   </div>
 
-                  <Button 
-                    onClick={handleSaveProposals} 
-                    disabled={isSaving || !proposals}
-                    className="w-full"
-                    variant="default"
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    {isSaving ? "Enregistrement..." : "Sauvegarder les propositions"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleSaveProposals} 
+                      disabled={isSaving || !proposals}
+                      className="flex-1"
+                      variant="default"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      {isSaving ? "Enregistrement..." : "Sauvegarder"}
+                    </Button>
+                    
+                    <Button 
+                      onClick={handleDownloadPDF} 
+                      disabled={!proposals}
+                      className="flex-1"
+                      variant="secondary"
+                    >
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Télécharger PDF
+                    </Button>
+                  </div>
 
                   {!isDigitalService && (
                     <p className="text-sm text-muted-foreground text-center">
