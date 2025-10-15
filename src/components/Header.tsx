@@ -70,6 +70,9 @@ const Header = () => {
             <Link to="/audit" className="text-sm font-medium hover:text-primary transition-colors">
               Audit Entreprise
             </Link>
+            <Link to="/admin-setup" className="text-sm font-medium hover:text-primary transition-colors">
+              Configuration Admin
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
