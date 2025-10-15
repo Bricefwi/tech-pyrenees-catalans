@@ -7,8 +7,12 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1rem",
       screens: {
+        "sm": "640px",
+        "md": "768px",
+        "lg": "1024px",
+        "xl": "1280px",
         "2xl": "1400px",
       },
     },
@@ -83,7 +87,7 @@ export default {
         "fade-in": {
           "0%": {
             opacity: "0",
-            transform: "translateY(20px)"
+            transform: "translateY(10px)"
           },
           "100%": {
             opacity: "1",
@@ -93,25 +97,28 @@ export default {
         "slide-in": {
           "0%": {
             opacity: "0",
-            transform: "translateX(-20px)"
+            transform: "translateY(20px)"
           },
           "100%": {
             opacity: "1",
-            transform: "translateX(0)"
+            transform: "translateY(0)"
           }
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.6s ease-out",
-        "slide-in": "slide-in 0.5s ease-out",
+        "fade-in": "fade-in 0.5s ease-out forwards",
+        "slide-in": "slide-in 0.5s ease-out forwards",
       },
       backgroundImage: {
         "gradient-catalan": "var(--gradient-catalan)",
-        "gradient-night": "var(--gradient-night)",
         "gradient-hero": "var(--gradient-hero)",
       },
+      boxShadow: {
+        elevated: "var(--shadow-elevated)",
+        glow: "var(--shadow-glow)",
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

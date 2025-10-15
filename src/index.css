@@ -8,7 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
+    --background: 220 20% 98%;
     --foreground: 220 15% 20%;
 
     --card: 0 0% 100%;
@@ -17,79 +17,75 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 15% 20%;
 
-    --primary: 220 90% 56%;
+    --primary: 4 90% 58%; /* Rouge Catalan */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 95% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 35 92% 55%; /* Or Catalan */
+    --secondary-foreground: 220 15% 20%;
 
     --muted: 220 15% 97%;
     --muted-foreground: 220 10% 50%;
 
-    --accent: 280 85% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 220 15% 94%;
+    --accent-foreground: 220 15% 20%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 15% 92%;
     --input: 220 15% 92%;
-    --ring: 220 90% 56%;
+    --ring: 4 90% 58%;
 
     --radius: 1rem;
     
-    --gradient-primary: linear-gradient(135deg, hsl(220 90% 56%), hsl(200 95% 50%));
-    --gradient-accent: linear-gradient(135deg, hsl(280 85% 60%), hsl(260 80% 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(220 90% 56% / 0.05), hsl(200 95% 50% / 0.05));
+    /* Dégradé "Sang et Or" */
+    --gradient-catalan: linear-gradient(135deg, hsl(4 90% 58%), hsl(35 92% 55%));
+    --gradient-hero: linear-gradient(to top, hsl(220 20% 98%) 5%, transparent 60%);
     
-    --shadow-elevated: 0 8px 30px -8px hsl(220 90% 56% / 0.12);
-    --shadow-glow: 0 0 50px hsl(220 90% 56% / 0.15);
+    --shadow-elevated: 0 8px 30px -8px hsl(4 90% 58% / 0.25);
+    --shadow-glow: 0 0 50px hsl(4 90% 58% / 0.20);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 217 91% 10%;
+    --background: 220 20% 10%; /* Bleu Nuit */
     --foreground: 0 0% 98%;
 
-    --card: 220 90% 8%;
+    --card: 220 20% 13%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 220 90% 8%;
+    --popover: 220 20% 13%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 4 90% 58%;
+    --primary: 4 90% 58%; /* Rouge Catalan */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 24 100% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 35 92% 55%; /* Or Catalan */
+    --secondary-foreground: 220 15% 20%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 20% 17%;
+    --muted-foreground: 220 10% 65%;
 
-    --accent: 217 91% 10%;
+    --accent: 220 20% 17%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
+    --border: 220 20% 17%;
+    --input: 220 20% 17%;
     --ring: 4 90% 58%;
+
+    --gradient-hero: linear-gradient(to top, hsl(220 20% 10%) 5%, transparent 60%);
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

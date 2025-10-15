@@ -1,10 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Phone, User } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const scrollToSection = (id: string) => {
     if (location.pathname !== '/') {
@@ -28,7 +41,10 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
+    <header className={cn(
+        "fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg transition-all duration-300",
+        scrolled ? "border-b shadow-sm" : "border-b border-transparent"
+    )}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
@@ -61,7 +77,7 @@ const Header = () => {
               <Phone className="w-4 h-4" />
               <span className="hidden lg:inline">Contact</span>
             </Button>
-            <Button onClick={() => navigate('/auth')} size="sm" className="bg-gradient-catalan hover:opacity-90">
+            <Button onClick={() => navigate('/auth')} size="sm" className="bg-gradient-catalan text-primary-foreground hover:opacity-90">
               <User className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Connexion</span>
             </Button>
