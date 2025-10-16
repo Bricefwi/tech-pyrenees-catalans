@@ -16,9 +16,9 @@ export default function ProposalPDFGenerator({ title, client, content }: Proposa
     if (!pdfRef.current) return;
 
     const opt = {
-      margin: [10, 10, 15, 10],
+      margin: [10, 10, 15, 10] as [number, number, number, number],
       filename: `${title.replace(/\s+/g, "_")}_proposition.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
+      image: { type: "jpeg" as const, quality: 0.98 },
       html2canvas: { scale: 2 },
       pagebreak: { mode: ["css", "legacy", "avoid-all"] },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
