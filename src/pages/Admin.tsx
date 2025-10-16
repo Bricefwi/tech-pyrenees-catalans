@@ -1,404 +1,159 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { LogOut, MessageSquare, FileText, Calendar, Sparkles } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
-const Admin = () => {
+interface Request {
+  id: string;
+  title: string;
+  client_name?: string;
+  status: string;
+  created_at: string;
+  quote?: { id: string; status: string | null };
+}
+
+export default function Admin() {
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [filter, setFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [serviceRequests, setServiceRequests] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    pending: 0,
-    inProgress: 0,
-    completed: 0,
-  });
+
+  async function loadRequests() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("service_requests")
+      .select("id, title, client_name, status, created_at, quotes(id, status)")
+      .order("created_at", { ascending: false });
+
+    if (error) toast({ title: "Erreur", description: error.message });
+    else setRequests(data || []);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    checkAdminAccess();
+    loadRequests();
   }, []);
 
-  const checkAdminAccess = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+  const filtered = requests.filter((r) =>
+    filter === "all" ? true : r.status === filter
+  );
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (!roleData) {
-        toast({
-          title: "Accès refusé",
-          description: "Vous n'avez pas les droits d'administration",
-          variant: "destructive",
-        });
-        navigate("/");
-        return;
-      }
-
-      await loadServiceRequests();
-    } catch (error) {
-      navigate("/auth");
-    } finally {
-      setIsLoading(false);
+  function colorForStatus(status: string) {
+    switch (status) {
+      case "pending":
+        return "bg-gray-100 text-gray-800";
+      case "in_progress":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-50 text-gray-600";
     }
-  };
-
-  const loadServiceRequests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("service_requests")
-        .select(`
-          *,
-          profiles (
-            full_name,
-            email,
-            phone,
-            company_name
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      setServiceRequests(data || []);
-
-      // Calculate stats
-      const pending = data?.filter(r => r.status === "pending").length || 0;
-      const inProgress = data?.filter(r => r.status === "in_progress").length || 0;
-      const completed = data?.filter(r => r.status === "completed").length || 0;
-
-      setStats({ pending, inProgress, completed });
-    } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      pending: "secondary",
-      in_progress: "default",
-      completed: "outline",
-    };
-    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive"> = {
-      low: "secondary",
-      medium: "default",
-      high: "destructive",
-    };
-    return <Badge variant={variants[priority] || "default"}>{priority}</Badge>;
-  };
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
-            <Button 
-              onClick={() => navigate("/admin-dashboard")} 
-              variant="link" 
-              className="p-0 h-auto mt-2"
-            >
-              Accéder au dashboard complet →
-            </Button>
-          </div>
-          <Button onClick={handleLogout} variant="outline">
-            <LogOut className="mr-2 h-4 w-4" />
-            Déconnexion
-          </Button>
-        </div>
+    <div className="p-6 space-y-8">
+      <h1 className="text-2xl font-semibold mb-2">Administration</h1>
+      <p className="text-gray-600 mb-4">
+        Suivi global des demandes et des propositions commerciales.
+      </p>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">En attente</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{stats.pending}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">En cours</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{stats.inProgress}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Terminées</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{stats.completed}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Service Requests */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Demandes clients</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="all">
-              <TabsList>
-                <TabsTrigger value="all">Toutes</TabsTrigger>
-                <TabsTrigger value="pending">En attente</TabsTrigger>
-                <TabsTrigger value="in_progress">En cours</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="all" className="space-y-4">
-                {serviceRequests.map((request) => (
-                  <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="space-y-3 flex-1">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <Badge variant="outline" className="font-mono text-xs">
-                              {request.request_number || `#${request.id.slice(0, 8)}`}
-                            </Badge>
-                            <h3 className="font-semibold text-lg">{request.title}</h3>
-                            {getStatusBadge(request.status)}
-                            {getPriorityBadge(request.priority)}
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
-                          <div className="flex items-start gap-6 text-sm">
-                            <div className="space-y-1">
-                              <p className="font-semibold text-foreground">👤 {request.profiles?.full_name}</p>
-                              {request.profiles?.company_name && (
-                                <p className="text-muted-foreground">🏢 {request.profiles.company_name}</p>
-                              )}
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-muted-foreground">📧 {request.profiles?.email}</p>
-                              {request.profiles?.phone && (
-                                <p className="text-muted-foreground">📱 {request.profiles.phone}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 flex-wrap">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/admin/request/${request.id}`)}
-                          >
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Chat
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/admin/proposal/${request.id}`)}
-                          >
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Propositions IA
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/admin/quote/${request.id}`)}
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Devis
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/admin/intervention/${request.id}`)}
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            Dates
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="pending" className="space-y-4">
-                {serviceRequests
-                  .filter((r) => r.status === "pending")
-                  .map((request) => (
-                    <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-3 flex-1">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <Badge variant="outline" className="font-mono text-xs">
-                                {request.request_number || `#${request.id.slice(0, 8)}`}
-                              </Badge>
-                              <h3 className="font-semibold text-lg">{request.title}</h3>
-                              {getStatusBadge(request.status)}
-                              {getPriorityBadge(request.priority)}
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
-                            <div className="flex items-start gap-6 text-sm">
-                              <div className="space-y-1">
-                                <p className="font-semibold text-foreground">👤 {request.profiles?.full_name}</p>
-                                {request.profiles?.company_name && (
-                                  <p className="text-muted-foreground">🏢 {request.profiles.company_name}</p>
-                                )}
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-muted-foreground">📧 {request.profiles?.email}</p>
-                                {request.profiles?.phone && (
-                                  <p className="text-muted-foreground">📱 {request.profiles.phone}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/request/${request.id}`)}
-                            >
-                              <MessageSquare className="mr-2 h-4 w-4" />
-                              Chat
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/proposal/${request.id}`)}
-                            >
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Propositions IA
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/quote/${request.id}`)}
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Devis
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/intervention/${request.id}`)}
-                            >
-                              <Calendar className="mr-2 h-4 w-4" />
-                              Dates
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </TabsContent>
-
-              <TabsContent value="in_progress" className="space-y-4">
-                {serviceRequests
-                  .filter((r) => r.status === "in_progress")
-                  .map((request) => (
-                    <Card key={request.id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary/20 hover:border-l-primary">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="space-y-3 flex-1">
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <Badge variant="outline" className="font-mono text-xs">
-                                {request.request_number || `#${request.id.slice(0, 8)}`}
-                              </Badge>
-                              <h3 className="font-semibold text-lg">{request.title}</h3>
-                              {getStatusBadge(request.status)}
-                              {getPriorityBadge(request.priority)}
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{request.description}</p>
-                            <div className="flex items-start gap-6 text-sm">
-                              <div className="space-y-1">
-                                <p className="font-semibold text-foreground">👤 {request.profiles?.full_name}</p>
-                                {request.profiles?.company_name && (
-                                  <p className="text-muted-foreground">🏢 {request.profiles.company_name}</p>
-                                )}
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-muted-foreground">📧 {request.profiles?.email}</p>
-                                {request.profiles?.phone && (
-                                  <p className="text-muted-foreground">📱 {request.profiles.phone}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/request/${request.id}`)}
-                            >
-                              <MessageSquare className="mr-2 h-4 w-4" />
-                              Chat
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/proposal/${request.id}`)}
-                            >
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              Propositions IA
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/quote/${request.id}`)}
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Devis
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/admin/intervention/${request.id}`)}
-                            >
-                              <Calendar className="mr-2 h-4 w-4" />
-                              Dates
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+      {/* ---- Filtres ---- */}
+      <div className="flex gap-2 mb-4">
+        {["all", "pending", "in_progress", "completed"].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1 rounded-md border ${
+              filter === f ? "bg-blue-500 text-white" : "bg-white text-gray-700"
+            }`}
+          >
+            {f === "all"
+              ? "Toutes"
+              : f === "pending"
+              ? "En attente"
+              : f === "in_progress"
+              ? "En cours"
+              : "Terminées"}
+          </button>
+        ))}
       </div>
+
+      {/* ---- Tableau principal ---- */}
+      {loading && <p className="text-gray-500">Chargement…</p>}
+      {!loading && (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">Titre</th>
+                <th className="text-left px-3 py-2 font-medium">Client</th>
+                <th className="text-left px-3 py-2 font-medium">Date</th>
+                <th className="text-left px-3 py-2 font-medium">Statut</th>
+                <th className="text-left px-3 py-2 font-medium">Devis</th>
+                <th className="px-3 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((req) => (
+                <tr
+                  key={req.id}
+                  className="border-b hover:bg-slate-50 transition-colors"
+                >
+                  <td className="px-3 py-2 font-medium text-gray-800">
+                    {req.title || "Sans titre"}
+                  </td>
+                  <td className="px-3 py-2">{req.client_name || "—"}</td>
+                  <td className="px-3 py-2 text-gray-600">
+                    {format(new Date(req.created_at), "dd MMM yyyy", {
+                      locale: fr,
+                    })}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={`px-2 py-1 text-xs rounded-md font-medium ${colorForStatus(
+                        req.status
+                      )}`}
+                    >
+                      {req.status === "pending"
+                        ? "En attente"
+                        : req.status === "in_progress"
+                        ? "En cours"
+                        : "Terminée"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-sm">
+                    {req.quote ? (
+                      <span className="text-blue-600 font-medium cursor-pointer"
+                        onClick={() =>
+                          navigate(`/admin/proposal/${req.id}`)
+                        }>
+                        Devis #{req.quote.id.slice(0, 6)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 italic">Aucun</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      className="text-blue-600 hover:underline text-sm"
+                      onClick={() => navigate(`/admin/proposal/${req.id}`)}
+                    >
+                      Ouvrir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {filtered.length === 0 && (
+            <p className="text-gray-500 mt-4">Aucune demande trouvée.</p>
+          )}
+        </div>
+      )}
     </div>
   );
-};
-
-export default Admin;
+}
