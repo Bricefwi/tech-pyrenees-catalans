@@ -8,10 +8,10 @@ import { toast } from "@/components/ui/use-toast";
 interface Request {
   id: string;
   title: string;
-  client_name?: string;
   status: string;
   created_at: string;
-  quote?: { id: string; status: string | null };
+  profiles?: { full_name: string } | null;
+  quotes?: { id: string; status: string | null }[];
 }
 
 export default function Admin() {
@@ -24,7 +24,7 @@ export default function Admin() {
     setLoading(true);
     const { data, error } = await supabase
       .from("service_requests")
-      .select("id, title, client_name, status, created_at, quotes(id, status)")
+      .select("id, title, status, created_at, profiles(full_name), quotes(id, status)")
       .order("created_at", { ascending: false });
 
     if (error) toast({ title: "Erreur", description: error.message });
@@ -105,7 +105,7 @@ export default function Admin() {
                   <td className="px-3 py-2 font-medium text-gray-800">
                     {req.title || "Sans titre"}
                   </td>
-                  <td className="px-3 py-2">{req.client_name || "—"}</td>
+                  <td className="px-3 py-2">{req.profiles?.full_name || "—"}</td>
                   <td className="px-3 py-2 text-gray-600">
                     {format(new Date(req.created_at), "dd MMM yyyy", {
                       locale: fr,
@@ -125,12 +125,12 @@ export default function Admin() {
                     </span>
                   </td>
                   <td className="px-3 py-2 text-sm">
-                    {req.quote ? (
+                    {req.quotes && req.quotes.length > 0 ? (
                       <span className="text-blue-600 font-medium cursor-pointer"
                         onClick={() =>
                           navigate(`/admin/proposal/${req.id}`)
                         }>
-                        Devis #{req.quote.id.slice(0, 6)}
+                        Devis #{req.quotes[0].id.slice(0, 6)}
                       </span>
                     ) : (
                       <span className="text-gray-400 italic">Aucun</span>

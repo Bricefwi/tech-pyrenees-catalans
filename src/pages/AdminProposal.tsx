@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface Proposal {
   id?: string;
-  request_id: string;
-  content: string;
+  service_request_id: string;
+  description: string;
+  amount: number;
   created_at?: string;
 }
 
@@ -46,11 +47,11 @@ export default function AdminProposal() {
     const { data: prop, error: propErr } = await supabase
       .from("quotes")
       .select("*")
-      .eq("request_id", requestId)
+      .eq("service_request_id", requestId)
       .maybeSingle();
 
     if (propErr) toast({ title: "Erreur", description: propErr.message });
-    setProposal(prop || { request_id: requestId, content: "" });
+    setProposal(prop || { service_request_id: requestId, description: "", amount: 0 });
 
     setLoading(false);
   }
@@ -66,7 +67,7 @@ export default function AdminProposal() {
     if (error) {
       toast({ title: "Erreur IA", description: error.message });
     } else {
-      setProposal({ request_id: requestId, content: data?.content || "" });
+      setProposal({ service_request_id: requestId, description: data?.content || "", amount: 0 });
       toast({ title: "Proposition générée", description: "Contenu IA prêt à être revu." });
     }
 
@@ -76,14 +77,19 @@ export default function AdminProposal() {
   async function saveProposal() {
     if (!proposal || !requestId) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const payload = {
-      request_id: requestId,
-      content: proposal.content,
-      status: "generated",
+      service_request_id: requestId,
+      description: proposal.description,
+      amount: proposal.amount,
+      created_by: user.id,
+      status: "draft",
     };
 
     // upsert = insert or update
-    const { error } = await supabase.from("quotes").upsert(payload, { onConflict: "request_id" });
+    const { error } = await supabase.from("quotes").upsert(payload, { onConflict: "service_request_id" });
 
     if (error) {
       toast({ title: "Erreur", description: error.message });
@@ -109,7 +115,7 @@ export default function AdminProposal() {
         <div className="p-4 bg-slate-50 rounded-lg border">
           <h2 className="font-medium mb-1">{request.title}</h2>
           <p className="text-sm text-gray-600 mb-1">
-            Client : {request.client_name || "Inconnu"}
+            Type : {request.service_type || "Non spécifié"}
           </p>
           <p className="text-sm text-gray-600">Statut : {request.status}</p>
         </div>
@@ -150,9 +156,9 @@ export default function AdminProposal() {
 
       <Textarea
         rows={20}
-        value={proposal?.content || ""}
+        value={proposal?.description || ""}
         onChange={(e) =>
-          setProposal({ ...proposal!, content: e.target.value })
+          setProposal({ ...proposal!, description: e.target.value })
         }
         placeholder="Contenu de la proposition commerciale..."
         className="w-full text-sm border rounded-lg p-3 font-mono bg-white"

@@ -8,16 +8,14 @@ interface Request {
   id: string;
   title: string;
   status: string;
-  client_name?: string;
   created_at: string;
 }
 
 interface Intervention {
   id: string;
-  request_id: string;
-  date: string;
-  time?: string;
-  request?: Request;
+  service_request_id: string;
+  scheduled_date: string;
+  service_requests?: { title: string; id: string } | null;
 }
 
 export default function AdminDashboard() {
@@ -41,7 +39,7 @@ export default function AdminDashboard() {
     const { data: interv, error: intErr } = await supabase
       .from("intervention_dates")
       .select("*, service_requests(title, id)")
-      .order("date", { ascending: true });
+      .order("scheduled_date", { ascending: true });
     if (intErr) toast({ title: "Erreur", description: intErr.message });
     else setInterventions(interv || []);
 
@@ -76,9 +74,9 @@ export default function AdminDashboard() {
   const thisWeek = [startOfWeek(today, { locale: fr }), endOfWeek(today, { locale: fr })];
   const thisMonth = [startOfMonth(today), endOfMonth(today)];
 
-  const todayInterv = interventions.filter(i => format(new Date(i.date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"));
-  const weekInterv = interventions.filter(i => new Date(i.date) >= thisWeek[0] && new Date(i.date) <= thisWeek[1]);
-  const monthInterv = interventions.filter(i => new Date(i.date) >= thisMonth[0] && new Date(i.date) <= thisMonth[1]);
+  const todayInterv = interventions.filter(i => format(new Date(i.scheduled_date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"));
+  const weekInterv = interventions.filter(i => new Date(i.scheduled_date) >= thisWeek[0] && new Date(i.scheduled_date) <= thisWeek[1]);
+  const monthInterv = interventions.filter(i => new Date(i.scheduled_date) >= thisMonth[0] && new Date(i.scheduled_date) <= thisMonth[1]);
 
   return (
     <div className="p-6 space-y-8">
@@ -148,7 +146,7 @@ export default function AdminDashboard() {
             <ul className="space-y-1">
               {todayInterv.map(i => (
                 <li key={i.id} className="text-sm">
-                  {format(new Date(i.date), "HH:mm", { locale: fr })} – {i.request?.title || "Demande"}
+                  {format(new Date(i.scheduled_date), "HH:mm", { locale: fr })} – {i.service_requests?.title || "Demande"}
                 </li>
               ))}
             </ul>
@@ -160,7 +158,7 @@ export default function AdminDashboard() {
             <ul className="space-y-1">
               {weekInterv.map(i => (
                 <li key={i.id} className="text-sm">
-                  {format(new Date(i.date), "dd/MM HH:mm", { locale: fr })} – {i.request?.title || "Demande"}
+                  {format(new Date(i.scheduled_date), "dd/MM HH:mm", { locale: fr })} – {i.service_requests?.title || "Demande"}
                 </li>
               ))}
             </ul>
@@ -172,7 +170,7 @@ export default function AdminDashboard() {
             <ul className="space-y-1">
               {monthInterv.map(i => (
                 <li key={i.id} className="text-sm">
-                  {format(new Date(i.date), "dd/MM", { locale: fr })} – {i.request?.title || "Demande"}
+                  {format(new Date(i.scheduled_date), "dd/MM", { locale: fr })} – {i.service_requests?.title || "Demande"}
                 </li>
               ))}
             </ul>
