@@ -20,6 +20,9 @@ import AdminRequestChat from "./pages/AdminRequestChat";
 import AdminProposal from "./pages/AdminProposal";
 import AdminQuote from "./pages/AdminQuote";
 import AdminIntervention from "./pages/AdminIntervention";
+import FAQPage from "./pages/FAQ";
+import CGU from "./pages/CGU";
+import CGV from "./pages/CGV";
 import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
@@ -50,6 +53,9 @@ const App = () => (
               <Route path="/admin/proposal/:requestId" element={<AdminProposal />} />
               <Route path="/admin/quote/:requestId" element={<AdminQuote />} />
               <Route path="/admin/intervention/:requestId" element={<AdminIntervention />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/cgu" element={<CGU />} />
+              <Route path="/cgv" element={<CGV />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

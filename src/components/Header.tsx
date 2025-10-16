@@ -106,6 +106,9 @@ const Header = () => {
             <button onClick={() => scrollToSection('zone')} className="text-sm font-medium hover:text-primary transition-colors">
               Zone
             </button>
+            <Link to="/faq" className="text-sm font-medium hover:text-primary transition-colors">
+              FAQ
+            </Link>
             <button onClick={handleContactClick} className="text-sm font-medium hover:text-primary transition-colors">
               Contact
             </button>
@@ -117,9 +120,6 @@ const Header = () => {
                 Admin
               </Link>
             )}
-            <Link to="/admin-setup" className="text-sm font-medium hover:text-primary transition-colors">
-              Configuration Admin
-            </Link>
           </nav>
 
           <div className="flex items-center gap-3">

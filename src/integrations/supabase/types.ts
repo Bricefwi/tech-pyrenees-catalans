@@ -419,6 +419,66 @@ export type Database = {
           },
         ]
       }
+      faq: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          question: string
+          reponse: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          question: string
+          reponse: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          question?: string
+          reponse?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      faq_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          question: string
+          reponse: string | null
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question: string
+          reponse?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question?: string
+          reponse?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       intervention_dates: {
         Row: {
           created_at: string | null
@@ -651,6 +711,8 @@ export type Database = {
       profiles: {
         Row: {
           business_sector: string | null
+          cgu_accepted: boolean | null
+          cgu_accepted_at: string | null
           city: string | null
           company_id: string | null
           company_name: string | null
@@ -673,6 +735,8 @@ export type Database = {
         }
         Insert: {
           business_sector?: string | null
+          cgu_accepted?: boolean | null
+          cgu_accepted_at?: string | null
           city?: string | null
           company_id?: string | null
           company_name?: string | null
@@ -695,6 +759,8 @@ export type Database = {
         }
         Update: {
           business_sector?: string | null
+          cgu_accepted?: boolean | null
+          cgu_accepted_at?: string | null
           city?: string | null
           company_id?: string | null
           company_name?: string | null
