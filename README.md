@@ -1,3 +1,5 @@
+✅ Test d’édition via GitHub.dev
+
 # Welcome to your Lovable project
 
 ## Project info
