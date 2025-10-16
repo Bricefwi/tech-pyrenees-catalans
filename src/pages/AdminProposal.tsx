@@ -1,379 +1,162 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/components/ui/use-toast";
+import { Loader2, FileText, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, Save, FileDown } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { generateProposalPDF } from "@/components/admin/ProposalPDFGenerator";
 
-const AdminProposal = () => {
+interface Proposal {
+  id?: string;
+  request_id: string;
+  content: string;
+  created_at?: string;
+}
+
+export default function AdminProposal() {
   const { requestId } = useParams();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [requestDetails, setRequestDetails] = useState<any>(null);
-  const [proposals, setProposals] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [request, setRequest] = useState<any>(null);
 
   useEffect(() => {
-    checkAdminAndLoadData();
+    loadData();
   }, [requestId]);
 
-  const checkAdminAndLoadData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+  async function loadData() {
+    if (!requestId) return;
+    setLoading(true);
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-
-      if (!roleData) {
-        toast({
-          title: "Accès refusé",
-          description: "Vous n'avez pas les droits d'administration",
-          variant: "destructive",
-        });
-        navigate("/");
-        return;
-      }
-
-      await loadRequestData();
-    } catch (error) {
-      navigate("/auth");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadRequestData = async () => {
-    const { data, error } = await supabase
+    // Charger la demande
+    const { data: req, error: reqErr } = await supabase
       .from("service_requests")
-      .select(`
-        *,
-        profiles (
-          full_name,
-          email,
-          phone,
-          street_address,
-          postal_code,
-          city,
-          is_professional,
-          companies (
-            id,
-            name,
-            is_individual,
-            business_sector
-          )
-        )
-      `)
+      .select("*")
       .eq("id", requestId)
       .single();
 
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger la demande",
-        variant: "destructive",
-      });
+    if (reqErr) {
+      toast({ title: "Erreur", description: reqErr.message });
+      setLoading(false);
       return;
     }
+    setRequest(req);
 
-    // Charger la dernière proposition IA si elle existe
-    const { data: proposalData } = await supabase
-      .from("ai_proposals")
+    // Charger la proposition existante
+    const { data: prop, error: propErr } = await supabase
+      .from("quotes")
       .select("*")
-      .eq("service_request_id", requestId)
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .eq("request_id", requestId)
       .maybeSingle();
 
-    setRequestDetails({
-      ...data,
-      latestProposal: proposalData
-    });
-    
-    // @ts-ignore - Column will be added via migration
-    setProposals(proposalData?.proposals || data.admin_ai_proposals || "");
-  };
+    if (propErr) toast({ title: "Erreur", description: propErr.message });
+    setProposal(prop || { request_id: requestId, content: "" });
 
-  const handleGenerateProposals = async () => {
-    // @ts-ignore - Column will be added via migration
-    if (!requestDetails?.ai_specifications) {
-      toast({
-        title: "Cahier des charges manquant",
-        description: "Le client n'a pas encore généré de cahier des charges via l'IA",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const clientInfo = `
-Type: ${requestDetails.profiles?.companies?.is_individual ? 'Particulier' : 'Entreprise'}
-${!requestDetails.profiles?.companies?.is_individual ? 'Entreprise: ' + (requestDetails.profiles?.companies?.name || 'Non renseigné') : ''}
-Secteur: ${requestDetails.profiles?.companies?.business_sector || 'Non renseigné'}
-Contact: ${requestDetails.profiles?.full_name} (${requestDetails.profiles?.email})
-      `.trim();
-
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-admin-proposals`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          // @ts-ignore - Column will be added via migration
-          specifications: requestDetails.ai_specifications,
-          serviceType: requestDetails.service_type,
-          clientInfo
-        }),
-      });
-
-      if (!response.ok) throw new Error("Erreur génération");
-
-      const data = await response.json();
-      setProposals(data.proposals);
-      
-      toast({
-        title: "Propositions générées",
-        description: "Les propositions commerciales ont été créées avec succès",
-      });
-    } catch (error) {
-      console.error("Erreur:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de générer les propositions",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleSaveProposals = async () => {
-    setIsSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
-
-      // Insérer dans la table ai_proposals
-      const { error } = await supabase
-        .from("ai_proposals")
-        .insert({
-          service_request_id: requestId,
-          client_user_id: requestDetails.client_user_id,
-          profile_id: requestDetails.profile_id,
-          company_id: requestDetails.profiles?.companies?.id,
-          service_type: requestDetails.service_type,
-          title: requestDetails.title,
-          business_sector: requestDetails.profiles?.companies?.business_sector,
-          // @ts-ignore
-          specifications: requestDetails.ai_specifications || requestDetails.description || "",
-          proposals: proposals,
-          created_by: user.id
-        });
-
-      if (error) throw error;
-
-      // Mettre à jour aussi service_requests pour compatibilité
-      await supabase
-        .from("service_requests")
-        // @ts-ignore
-        .update({ admin_ai_proposals: proposals })
-        .eq("id", requestId);
-
-      await loadRequestData(); // Recharger pour avoir le proposal_number
-
-      toast({
-        title: "Sauvegardé",
-        description: "La proposition commerciale a été enregistrée avec succès",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    if (!requestDetails || !proposals) {
-      toast({
-        title: "Impossible de générer le PDF",
-        description: "Veuillez d'abord générer ou saisir des propositions",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const profile = requestDetails.profiles;
-    const company = profile?.companies;
-    
-    generateProposalPDF({
-      clientName: profile?.full_name || "Client",
-      companyName: company?.name,
-      isIndividual: company?.is_individual || false,
-      businessSector: company?.business_sector,
-      serviceType: requestDetails.service_type,
-      title: requestDetails.title,
-      // @ts-ignore
-      specifications: requestDetails.ai_specifications || requestDetails.description || "",
-      proposals: proposals,
-      requestNumber: requestDetails.request_number,
-      proposalNumber: requestDetails.latestProposal?.proposal_number,
-      clientAddress: profile?.street_address && profile?.postal_code && profile?.city
-        ? `${profile.street_address}, ${profile.postal_code} ${profile.city}`
-        : undefined,
-      clientEmail: profile?.email,
-      clientPhone: profile?.phone,
-    });
-
-    toast({
-      title: "PDF généré",
-      description: "Le document commercial a été téléchargé avec succès",
-    });
-  };
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Chargement...</div>;
+    setLoading(false);
   }
 
-  const isDigitalService = requestDetails && ["development", "nocode", "ai", "formation"].includes(requestDetails.service_type);
+  async function generateProposal() {
+    if (!requestId) return;
+    setGenerating(true);
+
+    const { data, error } = await supabase.functions.invoke("generate-admin-proposals", {
+      body: { requestId },
+    });
+
+    if (error) {
+      toast({ title: "Erreur IA", description: error.message });
+    } else {
+      setProposal({ request_id: requestId, content: data?.content || "" });
+      toast({ title: "Proposition générée", description: "Contenu IA prêt à être revu." });
+    }
+
+    setGenerating(false);
+  }
+
+  async function saveProposal() {
+    if (!proposal || !requestId) return;
+
+    const payload = {
+      request_id: requestId,
+      content: proposal.content,
+      status: "generated",
+    };
+
+    // upsert = insert or update
+    const { error } = await supabase.from("quotes").upsert(payload, { onConflict: "request_id" });
+
+    if (error) {
+      toast({ title: "Erreur", description: error.message });
+    } else {
+      toast({ title: "Enregistré", description: "Proposition sauvegardée dans la base." });
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        <Loader2 className="animate-spin inline-block mr-2" />
+        Chargement...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Button onClick={() => navigate("/admin")} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-semibold mb-2">Proposition commerciale</h1>
+
+      {request && (
+        <div className="p-4 bg-slate-50 rounded-lg border">
+          <h2 className="font-medium mb-1">{request.title}</h2>
+          <p className="text-sm text-gray-600 mb-1">
+            Client : {request.client_name || "Inconnu"}
+          </p>
+          <p className="text-sm text-gray-600">Statut : {request.status}</p>
+        </div>
+      )}
+
+      <div className="flex gap-3 mt-4">
+        <Button
+          onClick={generateProposal}
+          disabled={generating}
+          className="flex items-center gap-2"
+        >
+          {generating ? (
+            <>
+              <Loader2 className="animate-spin w-4 h-4" /> Génération...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" /> Générer via IA
+            </>
+          )}
         </Button>
 
-        <h1 className="text-3xl font-bold">Propositions Commerciales IA</h1>
+        <Button
+          onClick={saveProposal}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+        >
+          <Save className="w-4 h-4" /> Enregistrer
+        </Button>
 
-        {requestDetails && (
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Informations client et CDC */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informations Client</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <p><strong>Client:</strong> {requestDetails.profiles?.full_name}</p>
-                  <p>
-                    <strong>{requestDetails.profiles?.companies?.is_individual ? 'Particulier' : 'Entreprise'}:</strong>{' '}
-                    {requestDetails.profiles?.companies?.name || "Non renseigné"}
-                  </p>
-                  {!requestDetails.profiles?.companies?.is_individual && (
-                    <p><strong>Secteur:</strong> {requestDetails.profiles?.companies?.business_sector || "Non renseigné"}</p>
-                  )}
-                  <p><strong>Service:</strong> {requestDetails.service_type}</p>
-                  <p><strong>Titre:</strong> {requestDetails.title}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cahier des Charges Client</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* @ts-ignore - Column will be added via migration */}
-                  {requestDetails.ai_specifications ? (
-                    <div className="text-sm whitespace-pre-wrap max-h-[500px] overflow-y-auto border rounded-lg p-4 bg-muted/50">
-                      {/* @ts-ignore */}
-                      {requestDetails.ai_specifications}
-                    </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      {isDigitalService 
-                        ? "Le client n'a pas encore généré de cahier des charges via l'IA"
-                        : "Ce type de service ne nécessite pas de cahier des charges"}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Propositions commerciales */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Propositions Commerciales IA</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isDigitalService && (
-                    <Button 
-                      onClick={handleGenerateProposals} 
-                      // @ts-ignore - Column will be added via migration
-                      disabled={isGenerating || !requestDetails.ai_specifications}
-                      className="w-full"
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      {isGenerating ? "Génération en cours..." : "Générer des propositions avec l'IA"}
-                    </Button>
-                  )}
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Propositions de solutions:</label>
-                    <Textarea
-                      value={proposals}
-                      onChange={(e) => setProposals(e.target.value)}
-                      placeholder="Les propositions commerciales apparaîtront ici... Vous pouvez aussi les éditer manuellement."
-                      rows={20}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleSaveProposals} 
-                      disabled={isSaving || !proposals}
-                      className="flex-1"
-                      variant="default"
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      {isSaving ? "Enregistrement..." : "Sauvegarder"}
-                    </Button>
-                    
-                    <Button 
-                      onClick={handleDownloadPDF} 
-                      disabled={!proposals}
-                      className="flex-1"
-                      variant="secondary"
-                    >
-                      <FileDown className="mr-2 h-4 w-4" />
-                      Télécharger PDF
-                    </Button>
-                  </div>
-
-                  {!isDigitalService && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Cette fonctionnalité est principalement destinée aux services de transformation digitale (développement, No-Code, IA, formation).
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
+        <Button
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={() => window.print()}
+        >
+          <FileText className="w-4 h-4" /> Télécharger PDF
+        </Button>
       </div>
+
+      <Textarea
+        rows={20}
+        value={proposal?.content || ""}
+        onChange={(e) =>
+          setProposal({ ...proposal!, content: e.target.value })
+        }
+        placeholder="Contenu de la proposition commerciale..."
+        className="w-full text-sm border rounded-lg p-3 font-mono bg-white"
+      />
     </div>
   );
-};
-
-export default AdminProposal;
+}
