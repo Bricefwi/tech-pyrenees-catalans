@@ -1,583 +1,184 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle,
-  Users,
-  FileText,
-  ArrowLeft,
-  Wrench
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "@/components/ui/use-toast";
 
-const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [requests, setRequests] = useState<any[]>([]);
-  const [interventions, setInterventions] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    pending: 0,
-    inProgress: 0,
-    completed: 0,
-    todayInterventions: 0,
-    weekInterventions: 0,
-    monthInterventions: 0
-  });
+interface Request {
+  id: string;
+  title: string;
+  status: string;
+  client_name?: string;
+  created_at: string;
+}
 
-  useEffect(() => {
-    checkAdminAndLoadData();
-  }, []);
+interface Intervention {
+  id: string;
+  request_id: string;
+  date: string;
+  time?: string;
+  request?: Request;
+}
 
-  const checkAdminAndLoadData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+export default function AdminDashboard() {
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [interventions, setInterventions] = useState<Intervention[]>([]);
+  const [stats, setStats] = useState({ pending: 0, in_progress: 0, completed: 0 });
+  const [loading, setLoading] = useState(false);
 
-      // Vérifier le rôle admin
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+  async function loadDashboard() {
+    setLoading(true);
 
-      if (!roleData) {
-        toast({
-          title: "Accès refusé",
-          description: "Vous n'avez pas les droits administrateur",
-          variant: "destructive"
-        });
-        navigate("/");
-        return;
-      }
-
-      setIsAdmin(true);
-      await loadDashboardData();
-    } catch (error: any) {
-      console.error("Erreur:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les données",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadDashboardData = async () => {
-    // Charger les demandes avec les profils, entreprises, devis et dates d'intervention
-    const { data: requestsData } = await supabase
+    // ---- Charger les demandes
+    const { data: reqs, error: reqErr } = await supabase
       .from("service_requests")
-      .select(`
-        *,
-        profiles:client_user_id (
-          full_name,
-          email,
-          phone,
-          first_name,
-          last_name,
-          is_professional,
-          companies (
-            id,
-            name,
-            is_individual,
-            business_sector
-          )
-        ),
-        quotes (
-          id,
-          quote_number,
-          amount,
-          status,
-          created_at,
-          sent_at
-        ),
-        intervention_dates (
-          id,
-          scheduled_date,
-          status
-        )
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
+    if (reqErr) toast({ title: "Erreur", description: reqErr.message });
+    else setRequests(reqs || []);
 
-    if (requestsData) {
-      setRequests(requestsData);
-      
-      // Calculer les stats
-      const pending = requestsData.filter(r => r.status === "pending").length;
-      const inProgress = requestsData.filter(r => r.status === "in_progress").length;
-      const completed = requestsData.filter(r => r.status === "completed").length;
-      
-      setStats(prev => ({ ...prev, pending, inProgress, completed }));
-    }
-
-    // Charger les interventions
-    const today = new Date();
-    const weekStart = startOfWeek(today, { locale: fr });
-    const weekEnd = endOfWeek(today, { locale: fr });
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
-
-    const { data: interventionsData } = await supabase
+    // ---- Charger les interventions
+    const { data: interv, error: intErr } = await supabase
       .from("intervention_dates")
-      .select(`
-        *,
-        service_requests (
-          title,
-          service_type,
-          profiles:client_user_id (full_name, phone)
-        )
-      `)
-      .gte("scheduled_date", today.toISOString())
-      .order("scheduled_date", { ascending: true });
+      .select("*, service_requests(title, id)")
+      .order("date", { ascending: true });
+    if (intErr) toast({ title: "Erreur", description: intErr.message });
+    else setInterventions(interv || []);
 
-    if (interventionsData) {
-      setInterventions(interventionsData);
+    // ---- Calculer les stats
+    const pending = reqs?.filter(r => r.status === "pending").length ?? 0;
+    const in_progress = reqs?.filter(r => r.status === "in_progress").length ?? 0;
+    const completed = reqs?.filter(r => r.status === "completed").length ?? 0;
+    setStats({ pending, in_progress, completed });
 
-      const todayEnd = new Date(today);
-      todayEnd.setHours(23, 59, 59);
+    setLoading(false);
+  }
 
-      const todayCount = interventionsData.filter(i => 
-        new Date(i.scheduled_date) <= todayEnd
-      ).length;
-
-      const weekCount = interventionsData.filter(i => 
-        new Date(i.scheduled_date) >= weekStart && new Date(i.scheduled_date) <= weekEnd
-      ).length;
-
-      const monthCount = interventionsData.filter(i =>
-        new Date(i.scheduled_date) >= monthStart && new Date(i.scheduled_date) <= monthEnd
-      ).length;
-
-      setStats(prev => ({
-        ...prev,
-        todayInterventions: todayCount,
-        weekInterventions: weekCount,
-        monthInterventions: monthCount
-      }));
-    }
-  };
-
-  const updateRequestStatus = async (requestId: string, status: string) => {
+  async function updateStatus(id: string, status: string) {
     const { error } = await supabase
       .from("service_requests")
       .update({ status })
-      .eq("id", requestId);
-
+      .eq("id", id);
     if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: error.message });
     } else {
-      toast({
-        title: "Succès",
-        description: "Statut mis à jour"
-      });
-      loadDashboardData();
+      toast({ title: "Succès", description: `Statut passé à ${status}` });
+      loadDashboard();
     }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { label: string; variant: any }> = {
-      pending: { label: "En attente", variant: "secondary" },
-      in_progress: { label: "En cours", variant: "default" },
-      completed: { label: "Terminé", variant: "outline" },
-      cancelled: { label: "Annulé", variant: "destructive" }
-    };
-    const config = variants[status] || variants.pending;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const variants: Record<string, { label: string; className: string }> = {
-      low: { label: "Basse", className: "bg-green-100 text-green-800" },
-      medium: { label: "Moyenne", className: "bg-yellow-100 text-yellow-800" },
-      high: { label: "Haute", className: "bg-red-100 text-red-800" }
-    };
-    const config = variants[priority] || variants.medium;
-    return <Badge className={config.className}>{config.label}</Badge>;
-  };
-
-  const getServiceTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      repair_iphone: "Réparation iPhone",
-      repair_mac: "Réparation Mac/iPad",
-      development: "Développement",
-      nocode: "No-Code",
-      ai: "IA",
-      formation: "Formation"
-    };
-    return labels[type] || type;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Chargement...</p>
-        </div>
-      </div>
-    );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  // ---- Helper de filtrage du planning
+  const today = new Date();
+  const thisWeek = [startOfWeek(today, { locale: fr }), endOfWeek(today, { locale: fr })];
+  const thisMonth = [startOfMonth(today), endOfMonth(today)];
+
+  const todayInterv = interventions.filter(i => format(new Date(i.date), "yyyy-MM-dd") === format(today, "yyyy-MM-dd"));
+  const weekInterv = interventions.filter(i => new Date(i.date) >= thisWeek[0] && new Date(i.date) <= thisWeek[1]);
+  const monthInterv = interventions.filter(i => new Date(i.date) >= thisMonth[0] && new Date(i.date) <= thisMonth[1]);
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour
-            </Button>
-            <h1 className="text-3xl font-bold">Dashboard Admin</h1>
-          </div>
-          <Button onClick={() => supabase.auth.signOut().then(() => navigate("/"))}>
-            Déconnexion
-          </Button>
+    <div className="p-6 space-y-8">
+      <h1 className="text-2xl font-semibold">Tableau de bord Administrateur</h1>
+
+      {/* ---- Statistiques ---- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-lg bg-slate-100 p-4">
+          <h3 className="font-medium text-gray-700">En attente</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats.pending}</p>
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">En attente</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-              <p className="text-xs text-muted-foreground">demandes à traiter</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">En cours</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.inProgress}</div>
-              <p className="text-xs text-muted-foreground">interventions actives</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Terminées</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completed}</div>
-              <p className="text-xs text-muted-foreground">ce mois</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Aujourd'hui</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.todayInterventions}</div>
-              <p className="text-xs text-muted-foreground">interventions prévues</p>
-            </CardContent>
-          </Card>
+        <div className="rounded-lg bg-slate-100 p-4">
+          <h3 className="font-medium text-gray-700">En cours</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats.in_progress}</p>
         </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="requests" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="requests">
-              <FileText className="w-4 h-4 mr-2" />
-              Demandes
-            </TabsTrigger>
-            <TabsTrigger value="planning">
-              <Calendar className="w-4 h-4 mr-2" />
-              Planning
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="requests" className="space-y-4">
-            {requests.map((request) => (
-              <Card key={request.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{request.title}</CardTitle>
-                      <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                        <div className="flex gap-2 items-center">
-                          <Users className="w-4 h-4" />
-                          {request.profiles?.full_name || "Client inconnu"}
-                          {request.profiles?.phone && ` • ${request.profiles.phone}`}
-                        </div>
-                        {request.profiles?.companies && (
-                          <div className="flex gap-2 items-center ml-6">
-                            <Badge variant="outline" className="text-xs">
-                              {request.profiles.companies.is_individual ? '👤 Particulier' : '🏢 Entreprise'}
-                            </Badge>
-                            <span className="text-xs font-medium">
-                              {request.profiles.companies.name}
-                            </span>
-                            {request.profiles.companies.business_sector && !request.profiles.companies.is_individual && (
-                              <span className="text-xs">• {request.profiles.companies.business_sector}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {getStatusBadge(request.status)}
-                      {getPriorityBadge(request.priority)}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium mb-1">Type de service</p>
-                    <div className="flex items-center gap-2">
-                      <Wrench className="w-4 h-4" />
-                      <span>{getServiceTypeLabel(request.service_type)}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm font-medium mb-1">Description</p>
-                    <p className="text-sm text-muted-foreground">{request.description}</p>
-                  </div>
-
-                  {request.admin_notes && (
-                    <div>
-                      <p className="text-sm font-medium mb-1">Notes admin</p>
-                      <p className="text-sm text-muted-foreground">{request.admin_notes}</p>
-                    </div>
-                  )}
-
-                  {/* Affichage du devis s'il existe */}
-                  {request.quotes && request.quotes.length > 0 && (
-                    <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
-                      <p className="text-sm font-medium mb-1">Devis envoyé</p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-mono">{request.quotes[0].quote_number}</span>
-                        <span className="font-semibold">{request.quotes[0].amount}€</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={request.quotes[0].status === 'accepted' ? 'default' : 'secondary'}>
-                          {request.quotes[0].status === 'accepted' ? 'Accepté' : 
-                           request.quotes[0].status === 'rejected' ? 'Refusé' : 'En attente'}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          Envoyé le {format(new Date(request.quotes[0].sent_at || request.quotes[0].created_at), "d MMM yyyy", { locale: fr })}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Affichage de la date d'intervention si elle existe */}
-                  {request.intervention_dates && request.intervention_dates.length > 0 && (
-                    <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-lg">
-                      <p className="text-sm font-medium mb-1">Intervention prévue</p>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span className="font-semibold">
-                          {format(new Date(request.intervention_dates[0].scheduled_date), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="mt-1">
-                        {request.intervention_dates[0].status === 'completed' ? 'Terminée' :
-                         request.intervention_dates[0].status === 'cancelled' ? 'Annulée' : 'Planifiée'}
-                      </Badge>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-4 border-t">
-                    {request.status === "pending" && (
-                      <Button 
-                        onClick={() => updateRequestStatus(request.id, "in_progress")}
-                        size="sm"
-                      >
-                        Prendre en charge
-                      </Button>
-                    )}
-                    {request.status === "in_progress" && (
-                      <Button 
-                        onClick={() => updateRequestStatus(request.id, "completed")}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Marquer terminé
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={() => navigate(`/admin/request/${request.id}`)}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      Chat
-                    </Button>
-                    {["development", "nocode", "ai", "formation"].includes(request.service_type) && (
-                      <Button 
-                        onClick={() => navigate(`/admin/proposal/${request.id}`)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        Propositions IA
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={() => navigate(`/admin/quote/${request.id}`)}
-                      size="sm"
-                      variant="ghost"
-                      disabled={request.quotes && request.quotes.length > 0 && request.quotes[0].status === 'pending'}
-                    >
-                      {request.quotes && request.quotes.length > 0 ? 'Voir devis' : 'Devis'}
-                    </Button>
-                    <Button 
-                      onClick={() => navigate(`/admin/intervention/${request.id}`)}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      Dates
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="planning" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Aujourd'hui */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Aujourd'hui</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(), "d MMMM yyyy", { locale: fr })}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {interventions
-                    .filter(i => {
-                      const interventionDate = new Date(i.scheduled_date);
-                      const today = new Date();
-                      return interventionDate.toDateString() === today.toDateString();
-                    })
-                    .map((intervention) => (
-                      <div key={intervention.id} className="p-3 border rounded-lg space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span className="font-medium text-sm">
-                            {format(new Date(intervention.scheduled_date), "HH:mm")}
-                          </span>
-                        </div>
-                        <p className="text-sm">{intervention.service_requests?.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {intervention.service_requests?.profiles?.full_name}
-                        </p>
-                      </div>
-                    ))}
-                  {interventions.filter(i => {
-                    const interventionDate = new Date(i.scheduled_date);
-                    const today = new Date();
-                    return interventionDate.toDateString() === today.toDateString();
-                  }).length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Aucune intervention prévue
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Cette semaine */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Cette semaine</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {stats.weekInterventions} intervention(s)
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {interventions
-                    .filter(i => {
-                      const interventionDate = new Date(i.scheduled_date);
-                      const weekStart = startOfWeek(new Date(), { locale: fr });
-                      const weekEnd = endOfWeek(new Date(), { locale: fr });
-                      return interventionDate >= weekStart && interventionDate <= weekEnd;
-                    })
-                    .slice(0, 5)
-                    .map((intervention) => (
-                      <div key={intervention.id} className="p-3 border rounded-lg space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span className="font-medium text-sm">
-                            {format(new Date(intervention.scheduled_date), "EEE d MMM", { locale: fr })}
-                          </span>
-                        </div>
-                        <p className="text-sm">{intervention.service_requests?.title}</p>
-                      </div>
-                    ))}
-                </CardContent>
-              </Card>
-
-              {/* Ce mois */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Ce mois</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {stats.monthInterventions} intervention(s)
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Charge de travail</span>
-                      <Calendar className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Prévisions</span>
-                        <span className="font-medium">{stats.monthInterventions}h</span>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${Math.min((stats.monthInterventions / 160) * 100, 100)}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {Math.round((stats.monthInterventions / 160) * 100)}% de capacité
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="rounded-lg bg-slate-100 p-4">
+          <h3 className="font-medium text-gray-700">Terminées</h3>
+          <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
+        </div>
       </div>
+
+      {/* ---- Liste des demandes ---- */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">Demandes</h2>
+        {requests.length === 0 && <p className="text-gray-500">Aucune demande pour le moment.</p>}
+        <ul className="divide-y divide-gray-200">
+          {requests.map(req => (
+            <li key={req.id} className="py-3 flex justify-between items-center">
+              <div>
+                <p className="font-medium">{req.title || "Sans titre"}</p>
+                <p className="text-sm text-gray-500">
+                  {format(new Date(req.created_at), "dd MMM yyyy HH:mm", { locale: fr })} – {req.status}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {req.status === "pending" && (
+                  <button
+                    className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
+                    onClick={() => updateStatus(req.id, "in_progress")}
+                  >
+                    Prendre en charge
+                  </button>
+                )}
+                {req.status === "in_progress" && (
+                  <button
+                    className="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600"
+                    onClick={() => updateStatus(req.id, "completed")}
+                  >
+                    Terminer
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ---- Planning ---- */}
+      <section>
+        <h2 className="text-xl font-semibold mb-3">Planning des interventions</h2>
+        {interventions.length === 0 && <p className="text-gray-500">Aucune intervention planifiée.</p>}
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <h3 className="font-medium text-gray-700 mb-2">Aujourd’hui</h3>
+            {todayInterv.length === 0 && <p className="text-gray-400 text-sm">Rien de prévu</p>}
+            <ul className="space-y-1">
+              {todayInterv.map(i => (
+                <li key={i.id} className="text-sm">
+                  {format(new Date(i.date), "HH:mm", { locale: fr })} – {i.request?.title || "Demande"}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-medium text-gray-700 mb-2">Cette semaine</h3>
+            {weekInterv.length === 0 && <p className="text-gray-400 text-sm">Aucune intervention</p>}
+            <ul className="space-y-1">
+              {weekInterv.map(i => (
+                <li key={i.id} className="text-sm">
+                  {format(new Date(i.date), "dd/MM HH:mm", { locale: fr })} – {i.request?.title || "Demande"}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-medium text-gray-700 mb-2">Ce mois-ci</h3>
+            {monthInterv.length === 0 && <p className="text-gray-400 text-sm">Aucune intervention</p>}
+            <ul className="space-y-1">
+              {monthInterv.map(i => (
+                <li key={i.id} className="text-sm">
+                  {format(new Date(i.date), "dd/MM", { locale: fr })} – {i.request?.title || "Demande"}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
     </div>
   );
-};
-
-export default AdminDashboard;
+}
