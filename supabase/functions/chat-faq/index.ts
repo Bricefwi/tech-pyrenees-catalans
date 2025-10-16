@@ -6,12 +6,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting: max 10 requests per IP per hour
+const RATE_LIMIT = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Rate limiting check
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    const now = Date.now();
+    const rateLimitData = requestCounts.get(clientIP);
+    
+    if (rateLimitData) {
+      if (now < rateLimitData.resetTime) {
+        if (rateLimitData.count >= RATE_LIMIT) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Trop de requêtes. Veuillez réessayer dans quelques minutes.',
+              reponse: 'Pour éviter les abus, nous limitons le nombre de questions. Veuillez patienter quelques minutes avant de réessayer.'
+            }),
+            { 
+              status: 429, 
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json',
+                'Retry-After': String(Math.ceil((rateLimitData.resetTime - now) / 1000))
+              } 
+            }
+          );
+        }
+        rateLimitData.count++;
+      } else {
+        // Reset window
+        requestCounts.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+      }
+    } else {
+      requestCounts.set(clientIP, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    }
+    
     const { question, _logOnly } = await req.json();
 
     if (!question) {
