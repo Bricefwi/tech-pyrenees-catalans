@@ -15,6 +15,7 @@ import EmailPreview from "./pages/EmailPreview";
 import ServiceSuggestions from "./pages/ServiceSuggestions";
 import Contact from "./pages/Contact";
 import AdminSetup from "./pages/AdminSetup";
+import AnalyzeSpecs from "./pages/AnalyzeSpecs";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import AdminRequestChat from "./pages/AdminRequestChat";
 import AdminProposal from "./pages/AdminProposal";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/cgu" element={<CGU />} />
               <Route path="/cgv" element={<CGV />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/analyze" element={<AnalyzeSpecs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
