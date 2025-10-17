@@ -1,55 +1,56 @@
 import { useState } from "react";
 import { analyzeProjectSpecs } from "@/lib/aiAnalysis";
 
-export default function AnalyzeSpecsPanel() {
+export default function AnalyzeSpecs() {
   const [specs, setSpecs] = useState("");
   const [client, setClient] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run() {
+  async function handleAnalyze() {
     setLoading(true);
-    setError(null);
     setResult(null);
+    setError(null);
     const { analysis, error } = await analyzeProjectSpecs({ specs, client });
     if (error) setError(error);
-    else setResult(analysis || "(aucun contenu)");
+    else setResult(analysis || "Aucun résultat retourné.");
     setLoading(false);
   }
 
   return (
-    <div className="space-y-3 p-4 border rounded-lg">
-      <h2 className="text-lg font-semibold">Analyse IA du cahier des charges</h2>
+    <div className="max-w-3xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Analyse IA du cahier des charges</h1>
 
       <input
+        type="text"
         value={client}
         onChange={(e) => setClient(e.target.value)}
         placeholder="Nom du client (optionnel)"
-        className="w-full border rounded p-2"
+        className="w-full p-2 border rounded"
       />
 
       <textarea
         value={specs}
         onChange={(e) => setSpecs(e.target.value)}
-        placeholder="Colle ici le cahier des charges…"
-        className="w-full h-40 border rounded p-2"
+        placeholder="Colle ici le cahier des charges du projet..."
+        className="w-full h-48 p-2 border rounded"
       />
 
       <button
-        onClick={run}
-        disabled={loading || !specs.trim()}
-        className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        onClick={handleAnalyze}
+        disabled={!specs.trim() || loading}
+        className="bg-black text-white px-4 py-2 rounded disabled:opacity-50"
       >
-        {loading ? "Analyse en cours…" : "Lancer l'analyse"}
+        {loading ? "Analyse en cours..." : "Lancer l’analyse"}
       </button>
 
       {error && (
-        <div className="text-red-600 text-sm whitespace-pre-wrap">{error}</div>
+        <div className="text-red-600 whitespace-pre-wrap">{error}</div>
       )}
 
       {result && (
-        <div className="mt-3 p-3 bg-gray-50 border rounded whitespace-pre-wrap">
+        <div className="bg-gray-50 border rounded p-3 whitespace-pre-wrap">
           {result}
         </div>
       )}
