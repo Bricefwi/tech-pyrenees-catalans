@@ -1,3 +1,4 @@
+import AnalyzeSpecs from "./AnalyzeSpecs";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +16,6 @@ import EmailPreview from "./pages/EmailPreview";
 import ServiceSuggestions from "./pages/ServiceSuggestions";
 import Contact from "./pages/Contact";
 import AdminSetup from "./pages/AdminSetup";
-import AnalyzeSpecs from "./pages/AnalyzeSpecs";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import AdminRequestChat from "./pages/AdminRequestChat";
 import AdminProposal from "./pages/AdminProposal";

@@ -1,3 +1,4 @@
+import AnalyzeSpecs from "./AnalyzeSpecs";
 import { useState } from "react";
 import { analyzeProjectSpecs } from "@/lib/aiAnalysis";
 
