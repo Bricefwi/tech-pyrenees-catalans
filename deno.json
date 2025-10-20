@@ -3,6 +3,7 @@
     "lib": ["deno.ns", "dom"],
     "skipLibCheck": true
   },
+  "nodeModulesDir": "auto",
   "imports": {
     "openai": "npm:openai@4.52.5"
   }

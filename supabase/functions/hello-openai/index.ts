@@ -1,6 +1,8 @@
 // supabase/functions/hello-openai/index.ts
 // Fonction de test OpenAI pour Deno + Supabase Edge
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "openai";
 
 // Initialisation client OpenAI via variable d'environnement
@@ -11,7 +13,7 @@ const openai = new OpenAI({
 console.log("✅ OpenAI client initialized successfully.");
 
 // Handler principal Supabase Edge
-Deno.serve(async (req) => {
+serve(async (req) => {
   try {
     // Simple prompt test (aucune donnée sensible)
     const completion = await openai.chat.completions.create({
