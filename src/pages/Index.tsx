@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Services from "@/components/Services";
 import ZoneIntervention from "@/components/ZoneIntervention";
 import ContactDiagnostic from "@/components/ContactDiagnostic";
@@ -6,10 +7,16 @@ import ContactDiagnostic from "@/components/ContactDiagnostic";
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <Helmet>
+        <title>IMOTION – Intégrateur Apple & Intelligence Artificielle</title>
+        <meta name="description" content="IMOTION aide les entreprises à moderniser leur écosystème Apple, automatiser leurs processus et intégrer des solutions IA et no-code." />
+        <link rel="canonical" href="https://imotion.fr/" />
+      </Helmet>
+
       <main>
         {/* Hero Section */}
-        <section className="mx-auto max-w-7xl px-4 pt-12 pb-16 grid md:grid-cols-2 gap-10 items-center">
-          <div className="space-y-5">
+        <section className="mx-auto max-w-7xl px-4 pt-12 pb-16 grid md:grid-cols-2 gap-10 items-center" aria-label="Présentation IMOTION">
+          <article className="space-y-5">
             <span className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-brand-primary font-medium">
               ● Intégrateur Apple & IA
             </span>
@@ -33,11 +40,12 @@ const Index = () => {
                 Demander un audit
               </Link>
             </div>
-          </div>
+          </article>
 
-          <div className="rounded-2xl overflow-hidden shadow-card border border-surface-border bg-white">
-            <img src="/hero-imotion.jpg" alt="Intégration Apple & IA" className="w-full h-auto" />
-          </div>
+          <figure className="rounded-2xl overflow-hidden shadow-card border border-surface-border bg-white">
+            <img src="/hero-imotion.jpg" alt="Technicien Apple et IA en action" loading="lazy" className="w-full h-auto" />
+            <figcaption className="sr-only">Expertise IMOTION – allier technologie et intelligence</figcaption>
+          </figure>
         </section>
 
         <Services />

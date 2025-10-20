@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Helmet } from "react-helmet-async";
+import SeoSchema from "@/components/SeoSchema";
 import Header from "@/components/Header";
 
 const Contact = () => {
@@ -48,6 +50,20 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Contact – IMOTION</title>
+        <meta name="description" content="Contactez IMOTION, votre expert Apple et IA basé à Perpignan. Assistance technique, audits et projets sur mesure." />
+        <link rel="canonical" href="https://imotion.fr/contact" />
+      </Helmet>
+
+      <SeoSchema
+        type="Service"
+        name="Support & Assistance IMOTION"
+        description="Assistance technique, audit et accompagnement pour les entreprises souhaitant moderniser leur parc Apple ou intégrer l'IA."
+        url="https://imotion.fr/contact"
+        serviceType="Support Apple & IA"
+      />
+
       <Header />
       <div className="bg-gradient-to-br from-background via-background to-muted/20 py-20 px-4 pt-24">
       <div className="container mx-auto max-w-6xl">

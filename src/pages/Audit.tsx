@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
+import SeoSchema from "@/components/SeoSchema";
 import Header from "@/components/Header";
 
 interface AuditSector {
@@ -464,6 +466,22 @@ const Audit = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Audit Digital & IA – IMOTION</title>
+        <meta name="description" content="Audit de maturité digitale et intégration IA pour entreprises. IMOTION évalue vos processus et propose un plan d'automatisation personnalisé." />
+        <link rel="canonical" href="https://imotion.fr/audit" />
+      </Helmet>
+
+      <SeoSchema
+        type="Service"
+        name="Audit Digital & IA"
+        description="Service d'audit de maturité numérique et accompagnement vers l'intégration de solutions IA et no-code."
+        url="https://imotion.fr/audit"
+        serviceType="Audit technologique et digital"
+        offersName="Audit complet IMOTION"
+        offersPrice="490"
+      />
+
       <Header />
       <main className="container mx-auto px-4 pt-24 pb-12">
         {viewMode && auditReport ? (
