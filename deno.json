@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "lib": ["deno.ns", "dom"],
     "skipLibCheck": true
+  },
+  "imports": {
+    "openai": "npm:openai@4.52.5"
   }
 }
