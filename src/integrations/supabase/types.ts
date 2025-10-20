@@ -461,6 +461,66 @@ export type Database = {
           },
         ]
       }
+      emails_logs: {
+        Row: {
+          cc_admins: string[] | null
+          created_at: string | null
+          error_details: string | null
+          id: string
+          message: string | null
+          pdf_url: string | null
+          recipient: string
+          related_profile: string | null
+          related_request: string | null
+          status: string | null
+          subject: string
+          type: string | null
+        }
+        Insert: {
+          cc_admins?: string[] | null
+          created_at?: string | null
+          error_details?: string | null
+          id?: string
+          message?: string | null
+          pdf_url?: string | null
+          recipient: string
+          related_profile?: string | null
+          related_request?: string | null
+          status?: string | null
+          subject: string
+          type?: string | null
+        }
+        Update: {
+          cc_admins?: string[] | null
+          created_at?: string | null
+          error_details?: string | null
+          id?: string
+          message?: string | null
+          pdf_url?: string | null
+          recipient?: string
+          related_profile?: string | null
+          related_request?: string | null
+          status?: string | null
+          subject?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_logs_related_profile_fkey"
+            columns: ["related_profile"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_logs_related_request_fkey"
+            columns: ["related_request"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faq: {
         Row: {
           category: string | null
