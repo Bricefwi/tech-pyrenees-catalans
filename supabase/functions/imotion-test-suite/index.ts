@@ -27,19 +27,32 @@ serve(async () => {
 
   // --- 1️⃣ Tests de base (pages principales) ---
   console.log("📊 Tests Frontend...");
-  const routes = ["/", "/faq", "/contact", "/audit", "/client/dashboard", "/admin"];
+  const routes = [
+    { path: "/", auth: false },
+    { path: "/faq", auth: false },
+    { path: "/contact", auth: false },
+    { path: "/audit", auth: false },
+    { path: "/client/dashboard", auth: true },  // Test e2e client authentifié
+    { path: "/admin", auth: true }  // Test e2e admin authentifié
+  ];
   summary["Frontend"] = [];
 
-  for (const route of routes) {
+  for (const { path, auth } of routes) {
     try {
-      const res = await fetch(`https://imotion.tech${route}`);
-      const ok = res.status === 200 || res.status === 401; // 401 acceptable pour pages protégées
-      summary["Frontend"].push({ route, ok, status: res.status });
+      const res = await fetch(`https://imotion.tech${path}`);
+      // Pages authentifiées doivent retourner 200 (si connecté) ou 401/302 (si non connecté)
+      const ok = auth ? (res.status === 200 || res.status === 401 || res.status === 302) : res.status === 200;
+      summary["Frontend"].push({ 
+        route: path, 
+        ok, 
+        status: res.status,
+        auth_required: auth 
+      });
       total++;
       if (ok) success++;
     } catch (err) {
       const error = err as Error;
-      summary["Frontend"].push({ route, ok: false, error: error.message });
+      summary["Frontend"].push({ route: path, ok: false, error: error.message, auth_required: auth });
       total++;
     }
   }
