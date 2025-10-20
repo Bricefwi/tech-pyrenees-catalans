@@ -1,34 +1,67 @@
+import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
-export async function exportElementToPDF(elementId: string, filename: string) {
-  const el = document.getElementById(elementId);
-  if (!el) throw new Error(`Élément introuvable: #${elementId}`);
-
-  // capture
-  const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-  const imgData = canvas.toDataURL("image/png");
-
-  // doc A4 portrait
-  const pdf = new jsPDF({ orientation: "p", unit: "pt", format: "a4" });
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-
-  const imgWidth = pageWidth - 40; // marges
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-  let y = 20;
-  let remainingHeight = imgHeight;
-
-  // pagination si contenu long
-  while (remainingHeight > 0) {
-    pdf.addImage(imgData, "PNG", 20, y, imgWidth, imgHeight, "", "FAST");
-    remainingHeight -= pageHeight;
-    if (remainingHeight > 0) {
-      pdf.addPage();
-      y = 20 - (remainingHeight % imgHeight); // reprise
-    }
+/**
+ * Exporter une zone HTML en PDF (compatible Lovable + React)
+ * @param elementId - L'ID de l'élément HTML à exporter (ex: "gantt-container")
+ * @param filename - Nom du fichier PDF généré
+ * @param title - Titre affiché en haut du PDF
+ * @param author - Nom de l'auteur (optionnel)
+ */
+export async function exportToPDF(
+  elementId: string,
+  filename: string,
+  title: string,
+  author?: string
+) {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    console.error("⚠️ Élément non trouvé :", elementId);
+    return;
   }
 
-  pdf.save(filename);
+  // Capture de la zone avec html2canvas
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+  });
+
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [canvas.width, canvas.height],
+  });
+
+  // En-tête PDF
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.text(title, 20, 30);
+
+  pdf.setFontSize(11);
+  pdf.setTextColor(100);
+  if (author) pdf.text(`Généré par : ${author}`, 20, 50);
+
+  // Image principale
+  pdf.addImage(imgData, "PNG", 0, 60, canvas.width, canvas.height);
+
+  // Pied de page
+  const pageHeight = pdf.internal.pageSize.height;
+  pdf.setFontSize(10);
+  pdf.setTextColor(150);
+  pdf.text(
+    `© ${new Date().getFullYear()} Tech Catalan - Analyse IA & Transformation Digitale`,
+    20,
+    pageHeight - 15
+  );
+
+  pdf.save(`${filename}.pdf`);
+}
+
+/**
+ * Fonction legacy pour compatibilité (appelée par ProjectDetail.tsx)
+ */
+export async function exportElementToPDF(elementId: string, filename: string) {
+  await exportToPDF(elementId, filename.replace('.pdf', ''), "Export Projet", "Tech Pyrénées Catalans");
 }
