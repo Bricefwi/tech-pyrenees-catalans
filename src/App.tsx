@@ -30,6 +30,12 @@ import FAQPage from "./pages/FAQ";
 import CGU from "./pages/CGU";
 import CGV from "./pages/CGV";
 import Brand from "./pages/Brand";
+import AdminAudits from "./pages/AdminAudits";
+import AdminQuotes from "./pages/AdminQuotes";
+import AdminInterventions from "./pages/AdminInterventions";
+import AdminFollowups from "./pages/AdminFollowups";
+import ClientQuotes from "./pages/ClientQuotes";
+import ClientProjects from "./pages/ClientProjects";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 
@@ -72,6 +78,12 @@ const App = () => (
               <Route path="/admin-projects/:projectId" element={<ProjectDetail />} />
               <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
               <Route path="/admin/pre-reception" element={<AdminPreReception />} />
+              <Route path="/admin/audits" element={<AdminAudits />} />
+              <Route path="/admin/quotes" element={<AdminQuotes />} />
+              <Route path="/admin/interventions" element={<AdminInterventions />} />
+              <Route path="/admin/followups" element={<AdminFollowups />} />
+              <Route path="/client/quotes" element={<ClientQuotes />} />
+              <Route path="/client/projects" element={<ClientProjects />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

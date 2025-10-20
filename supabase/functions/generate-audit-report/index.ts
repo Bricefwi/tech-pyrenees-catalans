@@ -1,4 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,115 +12,248 @@ serve(async (req) => {
   }
 
   try {
-    const { auditData, companyInfo } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const { audit_id } = await req.json();
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Récupérer l'audit avec toutes les infos nécessaires
+    const { data: audit, error: auditError } = await supabase
+      .from("audits")
+      .select(`
+        *,
+        profiles!audits_client_id_fkey(full_name, email),
+        companies(name),
+        service_requests(title, description)
+      `)
+      .eq("id", audit_id)
+      .single();
+
+    if (auditError || !audit) {
+      console.error("Audit not found:", auditError);
+      return new Response(JSON.stringify({ error: "Audit not found" }), { 
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    // Préparer les données pour le prompt
-    const sectorsData = auditData.sectors.map((sector: any) => {
-      const questions = auditData.responses.filter((r: any) => 
-        auditData.questions.find((q: any) => 
-          q.id === r.question_id && q.sector_id === sector.id
-        )
-      );
-      
-      return {
-        name: sector.name,
-        weighting: sector.weighting,
-        questions: questions.map((r: any) => {
-          const question = auditData.questions.find((q: any) => q.id === r.question_id);
-          return {
-            subdomain: question?.subdomain,
-            question: question?.question_text,
-            response: r.response_value,
-            score: r.score
-          };
-        })
-      };
-    });
+    // Construire le prompt pour l'IA
+    const prompt = `
+Vous êtes un expert en audit digital pour IMOTION, intégrateur Apple et solutions IA.
 
-    const systemPrompt = `Tu es un expert en transformation digitale et en conseil aux entreprises. 
+Contexte du projet:
+- Titre: ${audit.title || audit.service_requests?.title || 'Sans titre'}
+- Description: ${audit.service_requests?.description || 'Non spécifiée'}
+- Périmètre: ${audit.scope || 'À définir'}
+- Client: ${audit.profiles?.full_name || 'Non spécifié'}
+- Entreprise: ${audit.companies?.name || 'Particulier'}
 
-Tu vas analyser un audit de maturité digitale et produire un rapport HTML5 détaillé et visuellement attractif avec :
+Générez un rapport d'audit structuré et actionnable comprenant:
 
-1. **En-tête percutant** : Titre principal avec le nom de l'entreprise et une accroche commerciale
-2. **Score global de maturité** : Calcul sur 100 et visualisation graphique (utilise des div avec des couleurs pour créer des barres de progression HTML/CSS)
-3. **Synthèse exécutive** : Vue d'ensemble de la maturité digitale en 3-4 points clés
-4. **Analyse détaillée par secteur** : 
-   - Score par secteur avec visualisation graphique
-   - Forces identifiées
-   - Faiblesses et opportunités d'amélioration
-   - Prendre en compte les commentaires libres de l'utilisateur
-5. **Projets de solutions concrets** : 
-   - 3-5 projets NoCode/IA/Automatisation adaptés
-   - Pour chaque projet : description, gains potentiels (temps, productivité, CA), ROI estimé
-6. **Plan de transformation** : Roadmap sur 6-12 mois avec phases et étapes
-7. **Stack technologique recommandée** : Outils NoCode/IA adaptés au secteur avec justifications
+1. SYNTHÈSE EXÉCUTIVE
+   - Résumé en 3-4 points clés
+   - Enjeux principaux identifiés
 
-Format HTML5 moderne avec :
-- Structure sémantique (sections, articles)
-- Style inline CSS professionnel avec couleurs modernes (#2563eb bleu principal, #10b981 vert succès, #f59e0b orange attention)
-- Graphiques créés avec des div stylisées (barres de progression, indicateurs visuels)
-- Typographie claire et hiérarchie visuelle
-- Design épuré et professionnel adapté à un outil commercial
-- Responsive et imprimable en PDF
+2. ANALYSE DÉTAILLÉE
+   - État actuel de la situation
+   - Points forts existants
+   - Points d'amélioration prioritaires
+   - Risques identifiés
 
-Utilise un ton professionnel mais accessible. Sois concret, actionnable et commercial pour convertir le prospect.`;
+3. SOLUTIONS PROPOSÉES
+   - Recommandations techniques
+   - Solutions Apple et IA adaptées
+   - Quick wins (résultats rapides)
+   - Améliorations à moyen terme
 
-    const sectorComments = auditData.sectorComments || [];
-    
-    const userPrompt = `Voici l'audit digital d'une entreprise :
+4. JALONS ET LIVRABLES PROPOSÉS
+   - Phase 1: Diagnostic et planification (2 semaines)
+   - Phase 2: Mise en œuvre (4-8 semaines)
+   - Phase 3: Formation et accompagnement (2 semaines)
+   - Phase 4: Optimisation continue
 
-**Informations entreprise :**
-- Nom : ${companyInfo.name}
-- Secteur : ${companyInfo.sector || 'Non spécifié'}
-- Taille : ${companyInfo.size || 'Non spécifiée'}
+5. BÉNÉFICES ATTENDUS
+   - Gains de productivité estimés
+   - ROI prévisionnel
+   - Impact sur l'organisation
 
-**Réponses par secteur :**
-${JSON.stringify(sectorsData, null, 2)}
+Format: Markdown structuré, professionnel, orienté solutions IMOTION.
+`;
 
-**Commentaires et attentes du client par secteur :**
-${sectorComments.map((c: any) => `- ${c.sector_name}: ${c.comment || 'Aucun commentaire'}`).join('\n')}
+    // Appeler l'IA via Lovable Gateway
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) {
+      throw new Error("LOVABLE_API_KEY not configured");
+    }
 
-Génère un rapport HTML5 complet d'audit digital professionnel avec toutes les sections demandées. Le HTML doit être auto-suffisant avec CSS inline et prêt à être converti en PDF.`;
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    console.log("Calling AI Gateway for audit report...");
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { 
+            role: "system", 
+            content: "Vous êtes un expert en audit digital et transformation numérique pour IMOTION. Vous rédigez des rapports structurés, actionnables et orientés solutions Apple et IA."
+          },
+          { role: "user", content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 8000,
+        max_tokens: 2000,
+        temperature: 0.7
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
-      throw new Error(`Lovable AI error: ${response.status}`);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI Gateway error:", errorText);
+      throw new Error(`AI Gateway error: ${aiResponse.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    const report = data.choices?.[0]?.message?.content || 'Impossible de générer le rapport';
+    const aiJson = await aiResponse.json();
+    const reportContent = aiJson?.choices?.[0]?.message?.content || "Rapport indisponible.";
+
+    console.log("AI report generated successfully");
+
+    // Générer le HTML du rapport avec le branding IMOTION
+    const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport d'Audit IMOTION</title>
+  <style>
+    body { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; color: #111; background: #F7F7F8; margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { border-bottom: 3px solid #D91E18; padding-bottom: 20px; margin-bottom: 30px; }
+    .header h1 { margin: 0; font-size: 28px; color: #111; }
+    .header .subtitle { color: #666; font-size: 14px; margin-top: 8px; }
+    .content { line-height: 1.8; }
+    .content h2 { color: #D91E18; margin-top: 30px; font-size: 20px; }
+    .content h3 { color: #111; margin-top: 20px; font-size: 16px; }
+    .content ul, .content ol { margin: 10px 0; padding-left: 25px; }
+    .content li { margin: 8px 0; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #666; font-size: 12px; }
+    pre { background: #F7F7F8; padding: 15px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Rapport d'Audit IMOTION</h1>
+      <div class="subtitle">
+        Client: ${audit.profiles?.full_name || 'Non spécifié'} ${audit.companies?.name ? `(${audit.companies.name})` : ''}<br>
+        Date: ${new Date().toLocaleDateString('fr-FR')}
+      </div>
+    </div>
+    <div class="content">
+      ${reportContent.split('\n').map(line => {
+        if (line.startsWith('# ')) return `<h2>${line.substring(2)}</h2>`;
+        if (line.startsWith('## ')) return `<h3>${line.substring(3)}</h3>`;
+        if (line.startsWith('- ')) return `<li>${line.substring(2)}</li>`;
+        if (line.trim() === '') return '<br>';
+        return `<p>${line}</p>`;
+      }).join('\n')}
+    </div>
+    <div class="footer">
+      © ${new Date().getFullYear()} IMOTION · Intégrateur Apple & IA · contact@imotion.tech
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    // Uploader le rapport dans le storage
+    const fileName = `report-${audit_id}-${Date.now()}.html`;
+    const { error: uploadError } = await supabase.storage
+      .from("audit-reports")
+      .upload(fileName, new Blob([html], { type: "text/html" }), { 
+        upsert: true,
+        contentType: "text/html"
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw uploadError;
+    }
+
+    // Obtenir l'URL publique
+    const { data: urlData } = supabase.storage
+      .from("audit-reports")
+      .getPublicUrl(fileName);
+
+    const reportUrl = urlData.publicUrl;
+
+    // Mettre à jour l'audit
+    const { error: updateError } = await supabase
+      .from("audits")
+      .update({ 
+        report_pdf_url: reportUrl, 
+        status: "Prêt",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", audit_id);
+
+    if (updateError) {
+      console.error("Update error:", updateError);
+      throw updateError;
+    }
+
+    // Logger l'action
+    await supabase.from("workflow_logs").insert({
+      entity_type: "audit",
+      entity_id: audit_id,
+      action: "AUDIT_AI_READY",
+      details: { report_url: reportUrl },
+      performed_by: audit.client_id
+    });
+
+    console.log("Audit report generated successfully:", reportUrl);
+
+    // Envoyer l'email (appel à send-proposal-email)
+    try {
+      await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          to: audit.profiles?.email,
+          subject: "Votre rapport d'audit IMOTION est prêt",
+          html: `
+            <h2>Votre rapport d'audit est disponible</h2>
+            <p>Bonjour ${audit.profiles?.full_name || 'Client'},</p>
+            <p>Nous avons analysé votre besoin en détail. Votre rapport d'audit personnalisé est maintenant disponible.</p>
+            <p><a href="${reportUrl}" style="background:#111;color:#fff;padding:12px 24px;border-radius:8px;display:inline-block;text-decoration:none;margin:20px 0;">Consulter le rapport</a></p>
+            <p>Notre équipe reste à votre disposition pour échanger sur les recommandations et prochaines étapes.</p>
+            <p>Cordialement,<br>L'équipe IMOTION</p>
+          `,
+          ccAdmins: ['ops@imotion.tech'],
+          relatedRequest: audit.request_id,
+          relatedProfile: audit.client_id
+        }
+      });
+    } catch (emailError) {
+      console.error("Email sending error (non-blocking):", emailError);
+    }
 
     return new Response(
-      JSON.stringify({ report }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: true, 
+        report_url: reportUrl,
+        audit_id: audit_id
+      }), 
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
+
   } catch (error) {
-    console.error('Error in generate-audit-report:', error);
+    console.error("Error in generate-audit-report:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: error.message }), 
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
