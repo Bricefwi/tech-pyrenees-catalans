@@ -8,42 +8,42 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 220 20% 98%;
-    --foreground: 220 15% 20%;
+    --background: 0 0% 98%; /* #FAFAFA */
+    --foreground: 0 0% 7%; /* #111111 */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 20%;
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 20%;
+    --popover-foreground: 0 0% 7%;
 
-    --primary: 4 90% 58%; /* Rouge Catalan */
+    --primary: 355 82% 50%; /* #E31E24 - Rouge IMOTION */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 92% 55%; /* Or Catalan */
-    --secondary-foreground: 220 15% 20%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 0 0% 7%;
 
-    --muted: 220 15% 97%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 220 13% 95%;
+    --muted-foreground: 218 11% 29%; /* #4B5563 */
 
-    --accent: 220 15% 94%;
-    --accent-foreground: 220 15% 20%;
+    --accent: 220 13% 95%;
+    --accent-foreground: 0 0% 7%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 92%;
-    --input: 220 15% 92%;
-    --ring: 4 90% 58%;
+    --border: 218 20% 90%; /* #E5E7EB */
+    --input: 218 20% 90%;
+    --ring: 355 82% 50%;
 
-    --radius: 1rem;
+    --radius: 0.5rem;
     
-    /* Dégradé "Sang et Or" */
-    --gradient-catalan: linear-gradient(135deg, hsl(4 90% 58%), hsl(35 92% 55%));
-    --gradient-hero: linear-gradient(to top, hsl(220 20% 98%) 5%, transparent 60%);
+    /* Gradients IMOTION */
+    --gradient-catalan: linear-gradient(135deg, hsl(355 82% 50%), hsl(355 82% 40%));
+    --gradient-hero: linear-gradient(to top, hsl(0 0% 98%) 5%, transparent 60%);
     
-    --shadow-elevated: 0 8px 30px -8px hsl(4 90% 58% / 0.25);
-    --shadow-glow: 0 0 50px hsl(4 90% 58% / 0.20);
+    --shadow-elevated: 0 8px 30px -8px hsl(0 0% 7% / 0.06);
+    --shadow-glow: 0 0 40px hsl(355 82% 50% / 0.15);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -56,35 +56,35 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 220 20% 10%; /* Bleu Nuit */
+    --background: 0 0% 7%; /* #111111 */
     --foreground: 0 0% 98%;
 
-    --card: 220 20% 13%;
+    --card: 0 0% 13%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 220 20% 13%;
+    --popover: 0 0% 13%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 4 90% 58%; /* Rouge Catalan */
+    --primary: 355 82% 50%; /* #E31E24 - Rouge IMOTION */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 92% 55%; /* Or Catalan */
-    --secondary-foreground: 220 15% 20%;
+    --secondary: 218 11% 20%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 220 20% 17%;
-    --muted-foreground: 220 10% 65%;
+    --muted: 218 11% 17%;
+    --muted-foreground: 218 11% 65%;
 
-    --accent: 220 20% 17%;
+    --accent: 218 11% 17%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 20% 17%;
-    --input: 220 20% 17%;
-    --ring: 4 90% 58%;
+    --border: 218 11% 17%;
+    --input: 218 11% 17%;
+    --ring: 355 82% 50%;
 
-    --gradient-hero: linear-gradient(to top, hsl(220 20% 10%) 5%, transparent 60%);
+    --gradient-hero: linear-gradient(to top, hsl(0 0% 7%) 5%, transparent 60%);
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -103,6 +103,10 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+  
+  html {
+    @apply antialiased;
   }
 }

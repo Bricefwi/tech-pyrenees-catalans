@@ -18,6 +18,20 @@ export default {
     },
     extend: {
       colors: {
+        brand: {
+          primary: '#E31E24',
+          dark: '#BA1B1F',
+          light: '#FF5C66',
+        },
+        text: {
+          DEFAULT: '#111111',
+          muted: '#4B5563'
+        },
+        surface: {
+          DEFAULT: '#FAFAFA',
+          card: '#FFFFFF',
+          border: '#E5E7EB'
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -61,6 +75,9 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'ui-sans-serif', 'Segoe UI', 'Roboto', 'Arial']
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -118,6 +135,7 @@ export default {
       boxShadow: {
         elevated: "var(--shadow-elevated)",
         glow: "var(--shadow-glow)",
+        card: '0 8px 24px rgba(17, 17, 17, 0.06)'
       }
     },
   },

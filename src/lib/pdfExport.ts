@@ -35,23 +35,30 @@ export async function exportToPDF(
   });
 
   // En-tête PDF
+  // Logo (si disponible, sinon texte)
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(20);
+  pdf.setTextColor(227, 30, 36); // #E31E24
+  pdf.text("IMOTION", 20, 30);
+  
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
-  pdf.text(title, 20, 30);
+  pdf.setTextColor(17, 17, 17); // #111111
+  pdf.text(title, 20, 50);
 
   pdf.setFontSize(11);
-  pdf.setTextColor(100);
-  if (author) pdf.text(`Généré par : ${author}`, 20, 50);
+  pdf.setTextColor(75, 85, 99); // #4B5563
+  if (author) pdf.text(`Généré par : ${author}`, 20, 65);
 
   // Image principale
-  pdf.addImage(imgData, "PNG", 0, 60, canvas.width, canvas.height);
+  pdf.addImage(imgData, "PNG", 0, 80, canvas.width, canvas.height);
 
   // Pied de page
   const pageHeight = pdf.internal.pageSize.height;
   pdf.setFontSize(10);
   pdf.setTextColor(150);
   pdf.text(
-    `© ${new Date().getFullYear()} Tech Catalan - Analyse IA & Transformation Digitale`,
+    `© ${new Date().getFullYear()} IMOTION - Intégrateur Apple & IA`,
     20,
     pageHeight - 15
   );
@@ -63,5 +70,5 @@ export async function exportToPDF(
  * Fonction legacy pour compatibilité (appelée par ProjectDetail.tsx)
  */
 export async function exportElementToPDF(elementId: string, filename: string) {
-  await exportToPDF(elementId, filename.replace('.pdf', ''), "Export Projet", "Tech Pyrénées Catalans");
+  await exportToPDF(elementId, filename.replace('.pdf', ''), "Export Projet", "IMOTION");
 }

@@ -1,3 +1,34 @@
+const baseStyles = `
+  body { margin:0;background:#FAFAFA;color:#111;font-family:Inter,system-ui,Arial }
+  .container{max-width:640px;margin:0 auto;background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden}
+  .header{padding:20px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:12px}
+  .title{font-size:18px;font-weight:700;color:#111}
+  .content{padding:24px;line-height:1.6}
+  .btn{display:inline-block;background:#E31E24;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:500}
+  .muted{color:#6B7280;font-size:12px}
+  .footer{padding:16px;border-top:1px solid #E5E7EB;background:#FAFAFA;text-align:center}
+  table{width:100%;border-collapse:collapse;margin:16px 0}
+  th,td{padding:8px;text-align:left;border-bottom:1px solid #E5E7EB}
+  th{background:#FAFAFA;font-weight:600}
+`;
+
+export function wrapEmailHTML(innerHtml: string, emailTitle = "IMOTION") {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${baseStyles}</style></head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="title">${emailTitle}</div>
+        </div>
+        <div class="content">${innerHtml}</div>
+        <div class="footer">
+          <div class="muted">
+            © ${new Date().getFullYear()} IMOTION · Intégrateur Apple & IA · contact@imotion.fr
+          </div>
+        </div>
+      </div>
+    </body></html>`;
+}
+
 export function proposalEmailHtml({
   clientName,
   projectTitle,
@@ -11,48 +42,38 @@ export function proposalEmailHtml({
   milestones: { title: string; eta?: string; owner?: string }[];
   contactSignature: string;
 }) {
-  const rows = milestones.map(m => `
-    <tr>
-      <td style="padding:8px;border:1px solid #e5e7eb;">${m.title}</td>
-      <td style="padding:8px;border:1px solid #e5e7eb;">${m.eta || "-"}</td>
-      <td style="padding:8px;border:1px solid #e5e7eb;">${m.owner || "-"}</td>
-    </tr>
-  `).join("");
-
-  return `
-  <!doctype html>
-  <html lang="fr">
-  <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Proposition ${projectTitle}</title>
-  </head>
-  <body style="font-family:Inter,Arial,sans-serif;background:#f8fafc;margin:0;padding:24px;color:#0f172a;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:720px;margin:auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-      <tr><td style="padding:24px;">
-        <h1 style="margin:0 0 4px 0;font-size:20px;">Proposition — ${projectTitle}</h1>
-        <p style="margin:0 0 24px 0;color:#64748b;">Destinataire : ${clientName}</p>
-
-        <h2 style="font-size:16px;margin:0 0 8px 0;">Synthèse</h2>
-        <p style="margin:0 0 16px 0;line-height:1.6;">${summary}</p>
-
-        <h2 style="font-size:16px;margin:16px 0 8px 0;">Jalons</h2>
-        <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #e5e7eb;">
-          <thead>
-            <tr style="background:#f1f5f9;">
-              <th align="left" style="padding:8px;border:1px solid #e5e7eb;">Jalon</th>
-              <th align="left" style="padding:8px;border:1px solid #e5e7eb;">Échéance</th>
-              <th align="left" style="padding:8px;border:1px solid #e5e7eb;">Responsable</th>
+  const milestonesHtml = milestones.length > 0 
+    ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Jalon</th>
+            <th>Échéance</th>
+            <th>Responsable</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${milestones.map(m => `
+            <tr>
+              <td>${m.title}</td>
+              <td>${m.eta || 'À définir'}</td>
+              <td>${m.owner || 'IMOTION'}</td>
             </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+          `).join('')}
+        </tbody>
+      </table>
+    `
+    : '';
 
-        <p style="margin:24px 0 0 0;color:#64748b;">${contactSignature}</p>
-      </td></tr>
-    </table>
-  </body>
-  </html>`;
+  const inner = `
+    <p>Bonjour ${clientName},</p>
+    <p>Nous avons le plaisir de vous présenter notre proposition pour le projet <b>${projectTitle}</b>.</p>
+    <p>${summary}</p>
+    ${milestonesHtml}
+    <p>Nous restons à votre disposition pour tout ajustement ou précision.</p>
+    <p>Cordialement,<br>${contactSignature}<br><b>IMOTION</b></p>
+  `;
+  return wrapEmailHTML(inner, "Proposition commerciale");
 }
 
 export function projectProposalEmail({
@@ -60,7 +81,7 @@ export function projectProposalEmail({
   projectTitle,
   message,
   downloadLink,
-  companyName = "Tech Catalan",
+  companyName = "IMOTION",
 }: {
   clientName: string;
   projectTitle: string;
@@ -68,73 +89,13 @@ export function projectProposalEmail({
   downloadLink: string;
   companyName?: string;
 }) {
-  return `
-  <!DOCTYPE html>
-  <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      body {
-        font-family: 'Inter', Arial, sans-serif;
-        background-color: #f9fafb;
-        margin: 0;
-        padding: 40px 0;
-        color: #111827;
-      }
-      .container {
-        background-color: #ffffff;
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 32px;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      }
-      h1 {
-        color: #1e3a8a;
-        font-size: 22px;
-        margin-bottom: 16px;
-      }
-      p {
-        font-size: 15px;
-        line-height: 1.6;
-        margin-bottom: 16px;
-      }
-      a.button {
-        display: inline-block;
-        background-color: #2563eb;
-        color: #ffffff;
-        padding: 12px 20px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .footer {
-        font-size: 12px;
-        color: #6b7280;
-        margin-top: 32px;
-        border-top: 1px solid #e5e7eb;
-        padding-top: 12px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Bonjour ${clientName},</h1>
-      <p>Vous trouverez ci-joint le document d'analyse et la proposition pour le projet <strong>${projectTitle}</strong>.</p>
-
-      <p>${message}</p>
-
-      <p style="margin-top: 24px;">
-        <a href="${downloadLink}" class="button">📄 Télécharger la proposition</a>
-      </p>
-
-      <div class="footer">
-        ${companyName} — Analyse IA & Transformation Digitale.<br/>
-        Ce message a été généré automatiquement par notre plateforme de gestion de projets.
-      </div>
-    </div>
-  </body>
-  </html>
+  const inner = `
+    <p>Bonjour ${clientName},</p>
+    <p>Vous trouverez ci-joint notre proposition pour <b>${projectTitle}</b>.</p>
+    <p>${message}</p>
+    <p><a class="btn" href="${downloadLink}">Télécharger la proposition (PDF)</a></p>
+    <p>Nous restons disponibles pour échanger sur cette proposition.</p>
+    <p>Cordialement,<br>L'équipe ${companyName}</p>
   `;
+  return wrapEmailHTML(inner, "Nouvelle proposition");
 }

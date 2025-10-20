@@ -28,7 +28,9 @@ import AdminIntervention from "./pages/AdminIntervention";
 import FAQPage from "./pages/FAQ";
 import CGU from "./pages/CGU";
 import CGV from "./pages/CGV";
-import Footer from "./components/Footer";
+import Brand from "./pages/Brand";
+import Footer from "./components/layout/Footer";
+import Header from "./components/layout/Header";
 
 const queryClient = new QueryClient();
 
@@ -38,8 +40,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex flex-col min-h-screen">
-          <main className="flex-grow">
+        <div className="flex flex-col min-h-screen w-full">
+          <Header />
+          <main className="flex-1">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -61,12 +64,13 @@ const App = () => (
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/cgu" element={<CGU />} />
               <Route path="/cgv" element={<CGV />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/brand" element={<Brand />} />
               <Route path="/analyze" element={<AnalyzeSpecs />} />
               <Route path="/analyses-history" element={<AnalysesHistory />} />
               <Route path="/admin-projects" element={<AdminProjectsDashboard />} />
               <Route path="/admin-projects/:projectId" element={<ProjectDetail />} />
               <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
