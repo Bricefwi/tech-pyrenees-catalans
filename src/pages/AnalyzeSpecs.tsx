@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { analyzeProjectSpecs, saveAnalysis } from "@/lib/aiAnalysis";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { History } from "lucide-react";
 
 export default function AnalyzeSpecs() {
   const [specs, setSpecs] = useState("");
@@ -60,7 +62,17 @@ export default function AnalyzeSpecs() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Analyse IA du cahier des charges</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Analyse IA du cahier des charges</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.href = "/analyses-history"}
+        >
+          <History className="h-4 w-4 mr-2" />
+          Historique
+        </Button>
+      </div>
 
       {/* Sélection du client */}
       <div>
