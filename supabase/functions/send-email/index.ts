@@ -1,11 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// ⚠️ BCC AUTOMATIQUE IMOTION - Ne jamais retirer
+const IMOTION_BCC = "ops@imotion.tech";
 
 interface EmailRequest {
   type: "confirmation" | "quote" | "intervention_date";
@@ -192,27 +196,36 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: 'Tech catalan <onboarding@resend.dev>',
-        to: [to],
-        subject,
-        html,
-      }),
+    // ✅ Envoi avec BCC automatique ops@imotion.tech
+    const emailResponse = await resend.emails.send({
+      from: "IMOTION <noreply@imotion.tech>",
+      to: [to],
+      bcc: [IMOTION_BCC],
+      subject,
+      html,
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Resend error:", error);
-      throw new Error(error);
-    }
+    console.log(`✅ Email ${type} envoyé à ${to} (BCC: ${IMOTION_BCC})`, emailResponse);
 
-    console.log(`Email ${type} sent successfully to ${to}`);
+    // Logger dans emails_logs
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    await fetch(`${supabaseUrl}/rest/v1/emails_logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        recipient: to,
+        subject,
+        type,
+        status: 'sent',
+        cc_admins: [IMOTION_BCC],
+      }),
+    });
 
     return new Response(
       JSON.stringify({ success: true, message: "Email envoyé avec succès" }),
