@@ -1139,6 +1139,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          name: string | null
           profile_id: string | null
           progress: number | null
           request_id: string | null
@@ -1154,6 +1155,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          name?: string | null
           profile_id?: string | null
           progress?: number | null
           request_id?: string | null
@@ -1169,6 +1171,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          name?: string | null
           profile_id?: string | null
           progress?: number | null
           request_id?: string | null

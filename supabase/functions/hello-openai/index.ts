@@ -3,7 +3,7 @@
 // Version cloud-ready avec logs et gestion d'erreurs
 // ------------------------------
 
-import OpenAI from "openai";
+import OpenAI from "npm:openai@4.52.5";
 
 const openai = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY")!,

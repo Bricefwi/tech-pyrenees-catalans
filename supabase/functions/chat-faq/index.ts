@@ -104,10 +104,10 @@ serve(async (req) => {
         source: 'faq'
       }]);
 
-      return new Response(
-        JSON.stringify({ reponse: answer, source: 'faq' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    return new Response(
+      JSON.stringify({ reponse: answer, source: 'faq' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
     }
 
     // 2. Fallback vers Lovable AI
@@ -158,7 +158,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ reponse: aiAnswer, source: 'ia' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
