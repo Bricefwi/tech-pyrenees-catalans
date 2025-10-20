@@ -4,6 +4,7 @@ import AdminProjectsDashboard from "./pages/AdminProjectsDashboard";
 import ProjectDetail from "./pages/ProjectDetail";
 import AdminEmailLogs from "./pages/AdminEmailLogs";
 import AdminPreReception from "./pages/AdminPreReception";
+import TestRunner from "./pages/TestRunner";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -90,6 +91,8 @@ const App = () => (
               <Route path="/client/projects" element={<ClientProjects />} />
               <Route path="/client/tableau-de-bord" element={<ClientDashboard />} />
               <Route path="/client/chat/:requestId" element={<ClientRequestChat />} />
+              <Route path="/admin/tests" element={<TestRunner />} />
+              <Route path="/tests" element={<TestRunner />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

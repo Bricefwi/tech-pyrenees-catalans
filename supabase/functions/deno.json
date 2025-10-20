@@ -1,0 +1,6 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "https://deno.land/std@0.190.0/": "https://deno.land/std@0.190.0/"
+  }
+}
