@@ -1,10 +1,5 @@
 {
-  "nodeModulesDir": "auto",
-  "compilerOptions": {
-    "lib": ["deno.ns", "dom"]
-  },
   "imports": {
-    "openai": "npm:openai@4.52.5",
-    "std/": "https://deno.land/std@0.190.0/"
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2"
   }
 }
