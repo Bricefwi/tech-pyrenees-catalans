@@ -2,6 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Menu, X } from "lucide-react";
+import logoImotion from "@/assets/logo-imotion.png";
 
 export default function Header() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -46,12 +47,10 @@ export default function Header() {
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
           <img 
-            src="/logo-imotion.png" 
+            src={logoImotion} 
             alt="IMOTION" 
-            className="h-12 w-auto object-contain"
-            style={{ mixBlendMode: 'multiply' }}
+            className="h-10 w-auto"
           />
-          <span className="sr-only">IMOTION</span>
         </Link>
 
         {/* Mobile menu button */}
