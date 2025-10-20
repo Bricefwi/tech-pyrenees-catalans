@@ -7,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 import SeoSchema from "@/components/SeoSchema";
-import Header from "@/components/Header";
+import Header from "@/components/layout/Header";
 
 const Contact = () => {
   const [formData, setFormData] = useState({

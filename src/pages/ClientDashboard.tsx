@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LogOut, MessageSquare, FileText, Calendar, Plus, Home } from "lucide-react";
-import Header from "@/components/Header";
+import Header from "@/components/layout/Header";
 
 const ClientDashboard = () => {
   const navigate = useNavigate();

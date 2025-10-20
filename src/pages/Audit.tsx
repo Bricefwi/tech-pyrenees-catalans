@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import SeoSchema from "@/components/SeoSchema";
-import Header from "@/components/Header";
+import Header from "@/components/layout/Header";
 
 interface AuditSector {
   id: string;
