@@ -1,5 +1,6 @@
 import AnalyzeSpecs from "./pages/AnalyzeSpecs";
 import AnalysesHistory from "./pages/AnalysesHistory";
+import AdminProjectsDashboard from "./pages/AdminProjectsDashboard";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -61,6 +62,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="/analyze" element={<AnalyzeSpecs />} />
               <Route path="/analyses-history" element={<AnalysesHistory />} />
+              <Route path="/admin-projects" element={<AdminProjectsDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

@@ -833,6 +833,48 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          client_name: string
+          created_at: string
+          created_by: string | null
+          critical_points: Json | null
+          end_date: string
+          id: string
+          progress: number | null
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          critical_points?: Json | null
+          end_date: string
+          id?: string
+          progress?: number | null
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          critical_points?: Json | null
+          end_date?: string
+          id?: string
+          progress?: number | null
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
           accepted_at: string | null
