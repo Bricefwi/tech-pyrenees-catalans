@@ -71,6 +71,13 @@ const Audit = () => {
       setShowCompanyForm(false);
       setIsGeneratingReport(true);
       
+      // Charger les secteurs et questions en premier
+      const { data: sectorsData } = await supabase.from("audit_sectors").select("*").order("order_index");
+      const { data: questionsData } = await supabase.from("audit_questions").select("*").order("order_index");
+      
+      if (sectorsData) setSectors(sectorsData);
+      if (questionsData) setQuestions(questionsData);
+      
       // Charger l'audit et les infos de l'entreprise
       const { data: audit, error: auditError } = await supabase
         .from("audits")
@@ -117,36 +124,18 @@ const Audit = () => {
       // Sinon, générer le rapport (peut prendre du temps)
       console.log("⏳ Génération d'un nouveau rapport avec l'IA...");
       
-      const { data: sectorsData } = await supabase.from("audit_sectors").select("*").order("order_index");
-      const { data: questionsData } = await supabase.from("audit_questions").select("*").order("order_index");
       const { data: responsesData } = await supabase.from("audit_responses").select("*").eq("audit_id", auditId);
       const { data: commentsData } = await supabase
         .from("sector_comments")
         .select(`comment, sector_id, audit_sectors!inner(name)`)
         .eq("audit_id", auditId);
       
-      // Générer le rapport
+      // Générer le rapport via l'edge function
       const { data: reportData, error: reportError } = await supabase.functions.invoke(
         'generate-audit-report',
         {
           body: {
-            auditData: {
-              sectors: sectorsData,
-              questions: questionsData,
-              responses: responsesData,
-              sectorComments: (commentsData || []).map((c: any) => ({
-                sector_name: c.audit_sectors.name,
-                comment: c.comment
-              }))
-            },
-            companyInfo: {
-              name: company?.name || "",
-              sector: company?.sector || "",
-              size: company?.size || "",
-              contactName: company?.contact_name || "",
-              contactEmail: company?.contact_email || "",
-              contactPhone: company?.contact_phone || ""
-            }
+            audit_id: auditId
           }
         }
       );
