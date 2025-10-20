@@ -45,7 +45,12 @@ export default function Header() {
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-surface-border">
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <img src="/logo-imotion.png" alt="IMOTION" className="h-8 w-auto" />
+          <img 
+            src="/logo-imotion.png" 
+            alt="IMOTION" 
+            className="h-12 w-auto object-contain"
+            style={{ mixBlendMode: 'multiply' }}
+          />
           <span className="sr-only">IMOTION</span>
         </Link>
 
