@@ -193,50 +193,464 @@ Format: Markdown structuré, professionnel, orienté solutions IMOTION. Soyez sp
 
     console.log("AI report generated successfully");
 
+    // Fonction pour convertir le markdown en HTML
+    function formatMarkdownToHTML(markdown: string): string {
+      let html = markdown;
+      
+      // Titres
+      html = html.replace(/### (.*?)(\n|$)/g, '<h4>$1</h4>');
+      html = html.replace(/## (.*?)(\n|$)/g, '<h3>$1</h3>');
+      html = html.replace(/# (.*?)(\n|$)/g, '<h2>$1</h2>');
+      
+      // Gras
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Listes
+      const lines = html.split('\n');
+      let inList = false;
+      const processedLines: string[] = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (line.startsWith('- ') || line.startsWith('* ')) {
+          if (!inList) {
+            processedLines.push('<ul>');
+            inList = true;
+          }
+          processedLines.push(`<li>${line.substring(2)}</li>`);
+        } else {
+          if (inList) {
+            processedLines.push('</ul>');
+            inList = false;
+          }
+          if (line && !line.startsWith('<h')) {
+            processedLines.push(`<p>${line}</p>`);
+          } else {
+            processedLines.push(line);
+          }
+        }
+      }
+      
+      if (inList) {
+        processedLines.push('</ul>');
+      }
+      
+      return processedLines.join('\n');
+    }
+
     // Générer le HTML du rapport avec le branding IMOTION
+    const formattedContent = formatMarkdownToHTML(reportContent);
+    
     const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rapport d'Audit IMOTION</title>
+  <title>Rapport d'Audit Digital IMOTION - ${audit.audited_companies?.name || 'Entreprise'}</title>
   <style>
-    body { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; color: #111; background: #F7F7F8; margin: 0; padding: 20px; }
-    .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .header { border-bottom: 3px solid #D91E18; padding-bottom: 20px; margin-bottom: 30px; }
-    .header h1 { margin: 0; font-size: 28px; color: #111; }
-    .header .subtitle { color: #666; font-size: 14px; margin-top: 8px; }
-    .content { line-height: 1.8; }
-    .content h2 { color: #D91E18; margin-top: 30px; font-size: 20px; }
-    .content h3 { color: #111; margin-top: 20px; font-size: 16px; }
-    .content ul, .content ol { margin: 10px 0; padding-left: 25px; }
-    .content li { margin: 8px 0; }
-    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #666; font-size: 12px; }
-    pre { background: #F7F7F8; padding: 15px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
+    * { box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+      color: #1F2937; 
+      background: #F9FAFB; 
+      margin: 0; 
+      padding: 0;
+      line-height: 1.6;
+    }
+    .page { 
+      max-width: 900px; 
+      margin: 0 auto; 
+      background: white; 
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    
+    /* Page de couverture */
+    .cover-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+      color: white;
+      text-align: center;
+      padding: 60px 40px;
+      page-break-after: always;
+    }
+    .cover-page .logo {
+      font-size: 36px;
+      font-weight: 800;
+      color: #E31E24;
+      margin-bottom: 40px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .cover-page h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin: 0 0 20px 0;
+      line-height: 1.2;
+    }
+    .cover-page .subtitle {
+      font-size: 24px;
+      font-weight: 300;
+      margin-bottom: 60px;
+      opacity: 0.9;
+    }
+    .cover-page .client-info {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 30px 40px;
+      backdrop-filter: blur(10px);
+      margin-top: 40px;
+    }
+    .cover-page .client-info p {
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .cover-page .date {
+      margin-top: 60px;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+    
+    /* Score global */
+    .score-banner {
+      background: linear-gradient(135deg, #E31E24 0%, #DC2626 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .score-value {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .score-label {
+      font-size: 18px;
+      opacity: 0.95;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* Sections du contenu */
+    .content-section {
+      padding: 40px;
+    }
+    .section-header {
+      border-left: 4px solid #E31E24;
+      padding-left: 20px;
+      margin-bottom: 30px;
+    }
+    .section-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 8px 0;
+    }
+    .section-subtitle {
+      font-size: 14px;
+      color: #6B7280;
+      margin: 0;
+    }
+    
+    /* Scores par secteur */
+    .sector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .sector-card {
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 24px;
+      background: #FAFAFA;
+    }
+    .sector-card h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      color: #111827;
+      font-weight: 600;
+    }
+    .sector-score {
+      font-size: 36px;
+      font-weight: 700;
+      color: #E31E24;
+      margin-bottom: 8px;
+    }
+    .sector-bar {
+      height: 8px;
+      background: #E5E7EB;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .sector-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #E31E24 0%, #DC2626 100%);
+      transition: width 0.3s ease;
+    }
+    
+    /* Plan d'accompagnement */
+    .timeline {
+      position: relative;
+      padding: 20px 0;
+      margin: 40px 0;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 30px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #E5E7EB;
+    }
+    .timeline-item {
+      position: relative;
+      padding-left: 80px;
+      padding-bottom: 40px;
+    }
+    .timeline-marker {
+      position: absolute;
+      left: 18px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #E31E24;
+      border: 4px solid white;
+      box-shadow: 0 0 0 3px #E5E7EB;
+    }
+    .timeline-content {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .timeline-content h4 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: #111827;
+      font-weight: 600;
+    }
+    .timeline-content .duration {
+      color: #E31E24;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .timeline-content ul {
+      margin: 12px 0 0 0;
+      padding-left: 20px;
+    }
+    .timeline-content li {
+      margin: 6px 0;
+      color: #4B5563;
+    }
+    
+    /* Recommandations */
+    .recommendation-card {
+      border-left: 4px solid #E31E24;
+      background: #FEFCE8;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 16px 0;
+    }
+    .recommendation-card.priority-high {
+      border-left-color: #DC2626;
+      background: #FEE2E2;
+    }
+    .recommendation-card.priority-medium {
+      border-left-color: #F59E0B;
+      background: #FEF3C7;
+    }
+    .recommendation-card.priority-low {
+      border-left-color: #10B981;
+      background: #D1FAE5;
+    }
+    .recommendation-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .recommendation-card .priority-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .priority-high .priority-badge {
+      background: #DC2626;
+      color: white;
+    }
+    .priority-medium .priority-badge {
+      background: #F59E0B;
+      color: white;
+    }
+    .priority-low .priority-badge {
+      background: #10B981;
+      color: white;
+    }
+    
+    /* Bénéfices */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin: 30px 0;
+    }
+    .benefit-card {
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+    }
+    .benefit-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .benefit-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #E31E24;
+      margin-bottom: 8px;
+    }
+    .benefit-label {
+      font-size: 14px;
+      color: #6B7280;
+    }
+    
+    /* Contenu texte */
+    .text-content h2 {
+      font-size: 24px;
+      color: #111827;
+      margin: 32px 0 16px 0;
+      font-weight: 600;
+    }
+    .text-content h3 {
+      font-size: 18px;
+      color: #374151;
+      margin: 24px 0 12px 0;
+      font-weight: 600;
+    }
+    .text-content h4 {
+      font-size: 16px;
+      color: #4B5563;
+      margin: 20px 0 10px 0;
+      font-weight: 600;
+    }
+    .text-content p {
+      margin: 12px 0;
+      color: #4B5563;
+      line-height: 1.8;
+    }
+    .text-content ul, .text-content ol {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    .text-content li {
+      margin: 8px 0;
+      color: #4B5563;
+    }
+    .text-content strong {
+      color: #111827;
+      font-weight: 600;
+    }
+    
+    /* Footer */
+    .footer {
+      background: #1F2937;
+      color: white;
+      padding: 40px;
+      text-align: center;
+      margin-top: 60px;
+    }
+    .footer p {
+      margin: 8px 0;
+      opacity: 0.8;
+    }
+    .footer .contact {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    
+    /* Impression */
+    @media print {
+      .page { box-shadow: none; }
+      .cover-page { page-break-after: always; }
+      .content-section { page-break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Rapport d'Audit Digital IMOTION</h1>
-      <div class="subtitle">
-        Entreprise: ${audit.audited_companies?.name || 'Non spécifié'}<br>
-        Contact: ${audit.audited_companies?.contact_name || ''}<br>
-        Date: ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+  <div class="page">
+    <!-- Page de couverture -->
+    <div class="cover-page">
+      <div class="logo">⚡ IMOTION</div>
+      <h1>Rapport d'Audit Digital<br>et de Transformation Numérique</h1>
+      <div class="subtitle">Analyse & Recommandations Personnalisées</div>
+      
+      <div class="client-info">
+        <p><strong>Entreprise:</strong> ${audit.audited_companies?.name || 'Non spécifié'}</p>
+        <p><strong>Secteur d'activité:</strong> ${audit.audited_companies?.sector || 'Non spécifié'}</p>
+        ${audit.audited_companies?.contact_name ? `<p><strong>Contact:</strong> ${audit.audited_companies.contact_name}</p>` : ''}
+      </div>
+      
+      <div class="date">
+        **Date:** ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}<br>
+        **Audit Réalisé par:** IMOTION - Expert en Audit Digital & Intégration Apple/IA
       </div>
     </div>
-    <div class="content">
-      ${reportContent.split('\n').map(line => {
-        if (line.startsWith('# ')) return `<h2>${line.substring(2)}</h2>`;
-        if (line.startsWith('## ')) return `<h3>${line.substring(3)}</h3>`;
-        if (line.startsWith('- ')) return `<li>${line.substring(2)}</li>`;
-        if (line.trim() === '') return '<br>';
-        return `<p>${line}</p>`;
-      }).join('\n')}
+    
+    <!-- Score global -->
+    <div class="score-banner">
+      <div class="score-value">${Math.round(averageScore * 100)}%</div>
+      <div class="score-label">Score de Maturité Digitale</div>
     </div>
+    
+    <!-- Scores par secteur -->
+    <div class="content-section">
+      <div class="section-header">
+        <h2 class="section-title">Analyse par Secteur</h2>
+        <p class="section-subtitle">Évaluation détaillée de votre maturité digitale</p>
+      </div>
+      
+      <div class="sector-grid">
+        ${sectorScores.map(s => `
+          <div class="sector-card">
+            <h3>${s.name}</h3>
+            <div class="sector-score">${s.percentage}%</div>
+            <div class="sector-bar">
+              <div class="sector-bar-fill" style="width: ${s.percentage}%"></div>
+            </div>
+            <p style="margin-top: 8px; font-size: 14px; color: #6B7280;">${s.score} / ${s.maxScore} points</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    
+    <!-- Contenu principal du rapport IA -->
+    <div class="content-section text-content">
+      ${formattedContent}
+    </div>
+    
+    <!-- Footer -->
     <div class="footer">
-      © ${new Date().getFullYear()} IMOTION · Intégrateur Apple & IA · contact@imotion.tech
+      <p><strong>© ${new Date().getFullYear()} IMOTION</strong></p>
+      <p>Intégrateur Apple & Solutions IA · Expert en Transformation Digitale</p>
+      <div class="contact">
+        <p>📧 contact@imotion.tech · 📱 +33 (0)X XX XX XX XX</p>
+        <p>📍 Pyrénées Catalanes, France</p>
+      </div>
     </div>
   </div>
 </body>
