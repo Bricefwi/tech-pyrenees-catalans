@@ -1,43 +1,67 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import Gantt from "frappe-gantt";
 import "@/styles/gantt.css";
 
-type Task = {
+/**
+ * Composant Gantt
+ * Affiche la planification des projets (jalons, tâches, délais)
+ * Compatible avec Supabase ou toute source d'API contenant : id, name, start, end, progress
+ */
+interface ProjectTask {
   id: string;
   name: string;
-  start: string; // "YYYY-MM-DD"
-  end: string;   // "YYYY-MM-DD"
-  progress?: number;
-  custom_class?: string;
-};
+  start: string;
+  end: string;
+  progress: number;
+  dependencies?: string;
+}
 
-export default function ProjectGantt({ tasks }: { tasks: Task[] }) {
-  const ref = useRef<HTMLDivElement>(null);
+interface ProjectGanttProps {
+  tasks: ProjectTask[];
+  onClickTask?: (task: ProjectTask) => void;
+}
+
+export default function ProjectGantt({ tasks, onClickTask }: ProjectGanttProps) {
+  const ganttRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!ref.current || tasks.length === 0) return;
-    
-    // nettoie le container
-    ref.current.innerHTML = '<svg></svg>';
-    
-    // init gantt
-    new Gantt(ref.current.querySelector("svg")!, tasks, {
-      view_mode: "Week", // Day | Week | Month
-      language: "fr",
-      custom_popup_html: (task: any) => `
-        <div class="p-2">
-          <div class="font-semibold">${task.name}</div>
-          <div class="text-xs text-gray-600">${task.start} → ${task.end}</div>
-          <div class="text-xs">Progression: ${task.progress || 0}%</div>
-        </div>`
-    });
-  }, [tasks]);
+    if (!ganttRef.current || !tasks?.length) return;
 
-  if (tasks.length === 0) {
-    return <div className="text-muted-foreground p-4">Aucun jalon à afficher</div>;
-  }
+    const gantt = new Gantt(ganttRef.current, tasks, {
+      view_mode: "Week",
+      language: "fr",
+      bar_height: 22,
+      padding: 28,
+      custom_popup_html: (task: ProjectTask) => {
+        return `
+          <div class="p-2 text-left text-sm">
+            <strong>${task.name}</strong><br/>
+            <span>Début : ${task.start}</span><br/>
+            <span>Fin : ${task.end}</span><br/>
+            <span>Avancement : ${task.progress}%</span>
+          </div>
+        `;
+      },
+      on_click: (task: any) => {
+        if (onClickTask) onClickTask(task);
+      },
+    });
+
+    return () => {
+      // Clean-up pour éviter les doublons lors d'un re-render
+      if (ganttRef.current) ganttRef.current.innerHTML = "";
+    };
+  }, [tasks, onClickTask]);
 
   return (
-    <div id="gantt-container" className="overflow-auto border rounded bg-background" ref={ref} />
+    <div className="gantt-container">
+      {tasks?.length ? (
+        <div ref={ganttRef} className="gantt w-full"></div>
+      ) : (
+        <p className="text-center text-gray-500 text-sm p-4">
+          Aucun projet à afficher pour le moment.
+        </p>
+      )}
+    </div>
   );
 }
