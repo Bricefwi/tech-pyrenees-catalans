@@ -242,7 +242,8 @@ serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
     );
 
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     console.error("Error in workflow-hook:", error);
     return new Response(
       JSON.stringify({ error: error.message }), 

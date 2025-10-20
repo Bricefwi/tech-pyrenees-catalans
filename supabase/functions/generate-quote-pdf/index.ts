@@ -225,7 +225,8 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     console.error("Error in generate-quote-pdf:", error);
     return new Response(
       JSON.stringify({ error: error.message }), 

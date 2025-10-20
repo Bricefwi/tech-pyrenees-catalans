@@ -1,53 +1,67 @@
-// supabase/functions/hello-openai/index.ts
-// Fonction de test OpenAI pour Deno + Supabase Edge
+// ------------------------------
+// IMOTION - Test Cloud OpenAI API
+// Version cloud-ready avec logs et gestion d'erreurs
+// ------------------------------
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "openai";
 
-// Initialisation client OpenAI via variable d'environnement
 const openai = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY")!,
 });
 
-console.log("✅ OpenAI client initialized successfully.");
+Deno.serve(async (req) => {
+  const start = new Date();
 
-// Handler principal Supabase Edge
-serve(async (req) => {
   try {
-    // Simple prompt test (aucune donnée sensible)
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "Tu es un assistant de test IMOTION." },
-        { role: "user", content: "Dis-moi simplement 'Connexion OK'." }
+        { role: "system", content: "Tu es un assistant IMOTION en environnement cloud." },
+        { role: "user", content: "Teste la connexion et réponds : Connexion OpenAI IMOTION OK." }
       ],
       max_tokens: 30,
     });
 
-    const reply = completion.choices[0]?.message?.content ?? "Aucune réponse";
+    const reply = completion.choices[0]?.message?.content ?? "Réponse manquante";
+
+    const end = new Date();
+
+    // Log structuré (visible dans Supabase > Logs)
+    console.log(JSON.stringify({
+      event: "openai_connection_test",
+      timestamp: end.toISOString(),
+      duration_ms: end.getTime() - start.getTime(),
+      status: "success",
+      message: reply,
+    }));
 
     return new Response(
       JSON.stringify({
         status: "success",
         message: reply,
+        duration_ms: end.getTime() - start.getTime(),
       }),
-      {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
-      },
+      { headers: { "Content-Type": "application/json" }, status: 200 },
     );
-  } catch (error) {
-    console.error("❌ Erreur OpenAI:", error);
+
+  } catch (err) {
+    const end = new Date();
+    const error = err as Error;
+
+    console.error(JSON.stringify({
+      event: "openai_connection_test",
+      timestamp: end.toISOString(),
+      duration_ms: end.getTime() - start.getTime(),
+      status: "error",
+      error: error.message ?? "Erreur inconnue",
+    }));
+
     return new Response(
       JSON.stringify({
         status: "error",
         message: error.message ?? "Erreur inconnue",
       }),
-      {
-        headers: { "Content-Type": "application/json" },
-        status: 500,
-      },
+      { headers: { "Content-Type": "application/json" }, status: 500 },
     );
   }
 });

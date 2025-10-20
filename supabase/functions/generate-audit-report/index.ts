@@ -699,7 +699,8 @@ Format: Markdown structuré, professionnel, orienté solutions IMOTION. Soyez sp
       }
     );
 
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     console.error("Error in generate-audit-report:", error);
     return new Response(
       JSON.stringify({ error: error.message }), 
