@@ -36,6 +36,7 @@ import AdminInterventions from "./pages/AdminInterventions";
 import AdminFollowups from "./pages/AdminFollowups";
 import ClientQuotes from "./pages/ClientQuotes";
 import ClientProjects from "./pages/ClientProjects";
+import ClientRequestChat from "./pages/ClientRequestChat";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/client/quotes" element={<ClientQuotes />} />
               <Route path="/client/projects" element={<ClientProjects />} />
               <Route path="/client/tableau-de-bord" element={<ClientDashboard />} />
+              <Route path="/client/chat/:requestId" element={<ClientRequestChat />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
