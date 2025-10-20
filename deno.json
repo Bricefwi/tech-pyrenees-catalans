@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "lib": ["deno.ns", "dom"],
     "skipLibCheck": true
   }
 }
