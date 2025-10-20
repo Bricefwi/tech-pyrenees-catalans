@@ -6,10 +6,68 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTestFramework } from "@/hooks/useTestFramework";
-import { CheckCircle2, XCircle, AlertCircle, Download, Play, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Download, Play, Loader2, ShieldAlert } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const TestRunner = () => {
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { isRunning, results, summary, runTests, generatePDFReport } = useTestFramework();
+
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const hasAdminRole = roles?.some((r) => r.role === "admin") || false;
+      
+      if (!hasAdminRole) {
+        navigate('/');
+        return;
+      }
+
+      setIsAdmin(true);
+      setIsLoading(false);
+    };
+
+    checkAdminAccess();
+  }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 max-w-6xl flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto p-6 max-w-6xl flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md">
+          <CardContent className="text-center py-12">
+            <ShieldAlert className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold mb-2">Accès refusé</h2>
+            <p className="text-muted-foreground">
+              Cette page est réservée aux administrateurs.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const getCategoryColor = (category: string) => {
     switch (category) {

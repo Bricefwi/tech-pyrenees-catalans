@@ -76,9 +76,14 @@ export default function Header() {
             Solutions IA
           </NavLink>
           {isAdmin && (
-            <NavLink to="/admin" className={navLinkClass}>
-              Admin
-            </NavLink>
+            <>
+              <NavLink to="/admin" className={navLinkClass}>
+                Admin
+              </NavLink>
+              <NavLink to="/admin/tests" className={navLinkClass}>
+                Tests
+              </NavLink>
+            </>
           )}
           <NavLink to="/faq" className={navLinkClass}>
             FAQ
@@ -128,9 +133,14 @@ export default function Header() {
                 Solutions IA
               </NavLink>
               {isAdmin && (
-                <NavLink to="/admin" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
-                  Admin
-                </NavLink>
+                <>
+                  <NavLink to="/admin" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
+                    Admin
+                  </NavLink>
+                  <NavLink to="/admin/tests" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
+                    Tests
+                  </NavLink>
+                </>
               )}
               <NavLink to="/faq" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                 FAQ
