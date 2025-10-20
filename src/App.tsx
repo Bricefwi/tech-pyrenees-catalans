@@ -1,6 +1,7 @@
 import AnalyzeSpecs from "./pages/AnalyzeSpecs";
 import AnalysesHistory from "./pages/AnalysesHistory";
 import AdminProjectsDashboard from "./pages/AdminProjectsDashboard";
+import ProjectDetail from "./pages/ProjectDetail";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/analyze" element={<AnalyzeSpecs />} />
               <Route path="/analyses-history" element={<AnalysesHistory />} />
               <Route path="/admin-projects" element={<AdminProjectsDashboard />} />
+              <Route path="/admin-projects/:projectId" element={<ProjectDetail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
