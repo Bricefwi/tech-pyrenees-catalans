@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import Gantt from "frappe-gantt";
-import "frappe-gantt/dist/frappe-gantt.css";
+import "../styles/gantt.css";
 
 /**
  * Composant Gantt
