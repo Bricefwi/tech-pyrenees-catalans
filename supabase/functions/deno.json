@@ -1,6 +1,10 @@
 {
   "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom"]
+  },
   "imports": {
-    "https://deno.land/std@0.190.0/": "https://deno.land/std@0.190.0/"
+    "openai": "npm:openai@4.52.5",
+    "std/": "https://deno.land/std@0.190.0/"
   }
 }
