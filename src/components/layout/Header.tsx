@@ -46,11 +46,11 @@ export default function Header() {
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-surface-border">
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <div className="bg-white rounded-2xl px-6 py-4 shadow-lg border-2 border-surface-border">
+          <div className="bg-white rounded-2xl px-8 py-5 shadow-xl border-2 border-brand-primary/20">
             <img 
               src={logoImotion} 
               alt="IMOTION - Expert Apple & IA" 
-              className="h-20 w-auto"
+              className="h-24 w-auto"
             />
           </div>
         </Link>
