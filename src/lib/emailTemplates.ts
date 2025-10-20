@@ -99,3 +99,89 @@ export function projectProposalEmail({
   `;
   return wrapEmailHTML(inner, "Nouvelle proposition");
 }
+
+// Template pour audit prêt
+export function auditReadyEmail({
+  clientName,
+  reportUrl,
+}: {
+  clientName: string;
+  reportUrl: string;
+}) {
+  const inner = `
+    <h2 style="color:#D91E18;margin-bottom:16px">Votre rapport d'audit est prêt</h2>
+    <p>Bonjour ${clientName},</p>
+    <p>Nous avons analysé votre besoin en détail. Votre rapport d'audit personnalisé est maintenant disponible.</p>
+    <p style="text-align:center;margin:24px 0">
+      <a class="btn" href="${reportUrl}">Consulter le rapport</a>
+    </p>
+    <p>Notre équipe reste à votre disposition pour échanger sur les recommandations et prochaines étapes.</p>
+    <p>Cordialement,<br>L'équipe IMOTION</p>
+  `;
+  return wrapEmailHTML(inner, "Rapport d'audit IMOTION");
+}
+
+// Template pour devis envoyé
+export function quoteSentEmail({
+  clientName,
+  quoteTitle,
+  pdfUrl,
+}: {
+  clientName: string;
+  quoteTitle: string;
+  pdfUrl?: string;
+}) {
+  const inner = `
+    <h2 style="color:#D91E18;margin-bottom:16px">Votre devis personnalisé</h2>
+    <p>Bonjour ${clientName},</p>
+    <p>Nous avons le plaisir de vous transmettre notre devis pour <strong>${quoteTitle}</strong>.</p>
+    ${pdfUrl ? `<p style="text-align:center;margin:24px 0"><a class="btn" href="${pdfUrl}">Consulter le devis</a></p>` : ''}
+    <p>Vous pouvez le valider directement depuis votre espace client IMOTION.</p>
+    <p>Nous restons à votre disposition pour toute question.</p>
+    <p>Cordialement,<br>L'équipe IMOTION</p>
+  `;
+  return wrapEmailHTML(inner, "Devis IMOTION");
+}
+
+// Template pour devis validé
+export function quoteValidatedEmail({
+  clientName,
+  quoteTitle,
+}: {
+  clientName: string;
+  quoteTitle: string;
+}) {
+  const inner = `
+    <h2 style="color:#D91E18;margin-bottom:16px">Merci pour votre confiance !</h2>
+    <p>Bonjour ${clientName},</p>
+    <p>Votre devis pour <strong>${quoteTitle}</strong> a bien été validé.</p>
+    <p>Notre équipe prend contact avec vous dans les plus brefs délais pour planifier l'intervention.</p>
+    <p>Vous pouvez suivre l'avancement de votre projet depuis votre espace client.</p>
+    <p>Cordialement,<br>L'équipe IMOTION</p>
+  `;
+  return wrapEmailHTML(inner, "Devis validé - IMOTION");
+}
+
+// Template pour projet planifié
+export function projectPlannedEmail({
+  clientName,
+  projectTitle,
+  startDate,
+  technicianName,
+}: {
+  clientName: string;
+  projectTitle: string;
+  startDate?: string;
+  technicianName?: string;
+}) {
+  const inner = `
+    <h2 style="color:#D91E18;margin-bottom:16px">Planification de votre projet</h2>
+    <p>Bonjour ${clientName},</p>
+    <p>Votre projet <strong>${projectTitle}</strong> est maintenant planifié.</p>
+    ${startDate ? `<p>Date de début prévue : <strong>${startDate}</strong></p>` : ''}
+    ${technicianName ? `<p>Technicien référent : ${technicianName}</p>` : ''}
+    <p>Vous pouvez suivre l'avancement en temps réel depuis votre espace client.</p>
+    <p>Cordialement,<br>L'équipe IMOTION</p>
+  `;
+  return wrapEmailHTML(inner, "Projet planifié - IMOTION");
+}
