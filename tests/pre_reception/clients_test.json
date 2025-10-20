@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Jean Dupont",
+    "company": "TechNova Solutions",
+    "email": "imotion-test+jean@proton.me",
+    "type": "Projet IA",
+    "status": "en cours",
+    "sector": "Tech & Innovation"
+  },
+  {
+    "name": "Marie Lambert",
+    "company": "Café dels Pirineus",
+    "email": "imotion-test+marie@proton.me",
+    "type": "Intégration Apple",
+    "status": "nouveau",
+    "sector": "Restauration"
+  },
+  {
+    "name": "Carlos Martinez",
+    "company": "Bodega Catalana",
+    "email": "imotion-test+carlos@proton.me",
+    "type": "Audit Entreprise",
+    "status": "terminé",
+    "sector": "Vins & Spiritueux"
+  },
+  {
+    "name": "Sophie Durand",
+    "company": "Hôtel Mont Canigou",
+    "email": "imotion-test+sophie@proton.me",
+    "type": "Site Web IA",
+    "status": "en cours",
+    "sector": "Hôtellerie"
+  },
+  {
+    "name": "Pierre Mercier",
+    "company": "Mercier Architectes",
+    "email": "imotion-test+pierre@proton.me",
+    "type": "Formation Apple",
+    "status": "planifié",
+    "sector": "Architecture"
+  },
+  {
+    "name": "Anna Garcia",
+    "company": "Garcia Immobilier",
+    "email": "imotion-test+anna@proton.me",
+    "type": "CRM IA",
+    "status": "en cours",
+    "sector": "Immobilier"
+  },
+  {
+    "name": "Thomas Blanc",
+    "company": "Fromagerie des Pyrénées",
+    "email": "imotion-test+thomas@proton.me",
+    "type": "E-commerce Apple Pay",
+    "status": "nouveau",
+    "sector": "Artisanat Alimentaire"
+  },
+  {
+    "name": "Isabelle Rousseau",
+    "company": "Studio Design Perpignan",
+    "email": "imotion-test+isabelle@proton.me",
+    "type": "Gestion Projet IA",
+    "status": "en cours",
+    "sector": "Design & Communication"
+  },
+  {
+    "name": "Marc Fontaine",
+    "company": "Vignobles Fontaine",
+    "email": "imotion-test+marc@proton.me",
+    "type": "Analytics IA",
+    "status": "planifié",
+    "sector": "Agriculture & Viticulture"
+  },
+  {
+    "name": "Céline Moreau",
+    "company": "Clinique Vétérinaire Cerdagne",
+    "email": "imotion-test+celine@proton.me",
+    "type": "Logiciel Métier Apple",
+    "status": "nouveau",
+    "sector": "Santé Animale"
+  }
+]

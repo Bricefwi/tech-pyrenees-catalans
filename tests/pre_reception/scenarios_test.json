@@ -1,0 +1,86 @@
+[
+  {
+    "id": "scenario_1",
+    "name": "Création de compte et login",
+    "steps": [
+      "Accès à la page d'inscription",
+      "Remplissage du formulaire (email, mot de passe, profil)",
+      "Validation CGU",
+      "Confirmation email automatique",
+      "Login avec les identifiants",
+      "Redirection vers le dashboard client"
+    ],
+    "expected": "Utilisateur authentifié et redirigé vers son espace",
+    "priority": "critique"
+  },
+  {
+    "id": "scenario_2",
+    "name": "Création de demande et rattachement client",
+    "steps": [
+      "Client connecté crée une nouvelle demande",
+      "Sélection du type de service",
+      "Remplissage du cahier des charges",
+      "Soumission de la demande",
+      "Vérification du lien demande-client dans la BDD",
+      "Notification admin par email"
+    ],
+    "expected": "Demande créée et liée au bon profil client",
+    "priority": "critique"
+  },
+  {
+    "id": "scenario_3",
+    "name": "Analyse IA du cahier des charges",
+    "steps": [
+      "Admin ouvre une demande client",
+      "Lance l'analyse IA du cahier des charges",
+      "Génération automatique des spécifications",
+      "Propositions de solutions IA",
+      "Sauvegarde des résultats",
+      "Mise à jour du statut de la demande"
+    ],
+    "expected": "Analyse IA complète et stockée correctement",
+    "priority": "haute"
+  },
+  {
+    "id": "scenario_4",
+    "name": "Génération de rapport PDF",
+    "steps": [
+      "Sélection d'un audit ou d'une demande",
+      "Clic sur 'Générer le rapport PDF'",
+      "Compilation des données",
+      "Création du PDF avec logo et mise en forme",
+      "Téléchargement automatique",
+      "Archivage dans storage Supabase"
+    ],
+    "expected": "PDF généré correctement avec toutes les données",
+    "priority": "haute"
+  },
+  {
+    "id": "scenario_5",
+    "name": "Envoi de mail automatique",
+    "steps": [
+      "Déclenchement d'un événement (devis envoyé, rapport prêt)",
+      "Appel de la fonction d'envoi d'email",
+      "Construction du HTML avec template",
+      "Envoi via Resend API",
+      "Copie systématique à admin@imotion.tech",
+      "Log de l'email dans emails_logs"
+    ],
+    "expected": "Email envoyé au client et admin en copie",
+    "priority": "critique"
+  },
+  {
+    "id": "scenario_6",
+    "name": "Export projet et archivage",
+    "steps": [
+      "Admin sélectionne un projet terminé",
+      "Export des données au format JSON/PDF",
+      "Archivage dans le bucket imotion-tests",
+      "Génération d'un lien de téléchargement",
+      "Envoi du lien au client par email",
+      "Mise à jour du statut 'archivé'"
+    ],
+    "expected": "Projet exporté et archivé avec succès",
+    "priority": "moyenne"
+  }
+]

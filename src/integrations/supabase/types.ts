@@ -461,6 +461,30 @@ export type Database = {
           },
         ]
       }
+      documents_reference: {
+        Row: {
+          category: string | null
+          id: string
+          path: string
+          title: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          path: string
+          title: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          path?: string
+          title?: string
+          uploaded_at?: string | null
+        }
+        Relationships: []
+      }
       emails_logs: {
         Row: {
           cc_admins: string[] | null
