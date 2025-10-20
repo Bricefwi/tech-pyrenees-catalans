@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="mt-16 border-t border-surface-border bg-white">
       <div className="mx-auto max-w-7xl px-4 py-10 grid gap-10 md:grid-cols-3">
         <div className="space-y-3">
-          <img src="/logo-imotion.png" className="h-7" alt="IMOTION" />
+          <img src="/logo-imotion.png" className="h-12 rounded-lg shadow-sm border border-surface-border bg-white p-2" alt="IMOTION" />
           <p className="text-sm text-text-muted">
             Intégrateur Apple & solutions IA. Modernisation, automatisation, service managé.
           </p>
