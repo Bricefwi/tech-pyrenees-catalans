@@ -209,6 +209,13 @@ export type Database = {
             referencedRelation: "audits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "audit_recommendations_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "v_export_audit"
+            referencedColumns: ["audit_id"]
+          },
         ]
       }
       audit_responses: {
@@ -243,6 +250,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "audits"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_responses_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "v_export_audit"
+            referencedColumns: ["audit_id"]
           },
           {
             foreignKeyName: "audit_responses_question_id_fkey"
@@ -1287,6 +1301,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sector_comments_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "v_export_audit"
+            referencedColumns: ["audit_id"]
+          },
+          {
             foreignKeyName: "sector_comments_sector_id_fkey"
             columns: ["sector_id"]
             isOneToOne: false
@@ -1327,6 +1348,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "audits"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_scores_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "v_export_audit"
+            referencedColumns: ["audit_id"]
           },
         ]
       }
@@ -1477,7 +1505,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_export_audit: {
+        Row: {
+          audit_id: string | null
+          client_email: string | null
+          client_name: string | null
+          company_name: string | null
+          created_at: string | null
+          generated_report: string | null
+          responses: Json | null
+          sectors: Json | null
+          status: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_ai_proposal_number: {

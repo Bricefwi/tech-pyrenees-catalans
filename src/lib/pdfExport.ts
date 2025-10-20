@@ -72,3 +72,127 @@ export async function exportToPDF(
 export async function exportElementToPDF(elementId: string, filename: string) {
   await exportToPDF(elementId, filename.replace('.pdf', ''), "Export Projet", "IMOTION");
 }
+
+/**
+ * Génère un PDF d'audit professionnel avec scores, secteurs et recommandations
+ */
+export async function generateAuditPdf(options: {
+  brand: { logoUrl: string; company: string; tagline: string };
+  client: { name: string; email: string; company: string };
+  audit: {
+    id: string;
+    title: string;
+    date: Date;
+    globalScore: number;
+    sectorScores: Array<{ name: string; score: number }>;
+    sectors: Array<any>;
+    responses: Array<any>;
+  };
+  hook: string;
+}): Promise<Blob> {
+  const { brand, client, audit, hook } = options;
+
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const pageWidth = pdf.internal.pageSize.width;
+  const pageHeight = pdf.internal.pageSize.height;
+  let yPos = 20;
+
+  // En-tête avec logo et branding
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(24);
+  pdf.setTextColor(227, 30, 36); // #E31E24
+  pdf.text(brand.company, 20, yPos);
+  
+  yPos += 10;
+  pdf.setFontSize(10);
+  pdf.setTextColor(75, 85, 99);
+  pdf.text(brand.tagline, 20, yPos);
+
+  yPos += 20;
+
+  // Titre du rapport
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(20);
+  pdf.setTextColor(17, 17, 17);
+  pdf.text("Rapport d'Audit Digital", 20, yPos);
+
+  yPos += 10;
+  pdf.setFontSize(12);
+  pdf.setTextColor(75, 85, 99);
+  pdf.text(audit.title, 20, yPos);
+
+  yPos += 15;
+
+  // Informations client
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(11);
+  pdf.text(`Client: ${client.name}`, 20, yPos);
+  yPos += 6;
+  pdf.text(`Entreprise: ${client.company}`, 20, yPos);
+  yPos += 6;
+  pdf.text(`Date: ${audit.date.toLocaleDateString("fr-FR")}`, 20, yPos);
+
+  yPos += 15;
+
+  // Score global
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.setTextColor(227, 30, 36);
+  pdf.text(`Score Global: ${audit.globalScore}/100`, 20, yPos);
+
+  yPos += 15;
+
+  // Scores par secteur
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.setTextColor(17, 17, 17);
+  pdf.text("Scores par Secteur", 20, yPos);
+  yPos += 10;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(11);
+  pdf.setTextColor(75, 85, 99);
+
+  audit.sectorScores.forEach((sector) => {
+    if (yPos > pageHeight - 30) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    pdf.text(`• ${sector.name}: ${sector.score}/100`, 25, yPos);
+    yPos += 7;
+  });
+
+  yPos += 10;
+
+  // Hook commercial
+  if (yPos > pageHeight - 40) {
+    pdf.addPage();
+    yPos = 20;
+  }
+  pdf.setFont("helvetica", "italic");
+  pdf.setFontSize(10);
+  pdf.setTextColor(75, 85, 99);
+  const hookLines = pdf.splitTextToSize(hook, pageWidth - 40);
+  pdf.text(hookLines, 20, yPos);
+
+  yPos += hookLines.length * 6 + 10;
+
+  // Pied de page
+  const footerY = pageHeight - 15;
+  pdf.setFontSize(9);
+  pdf.setTextColor(150, 150, 150);
+  pdf.text(
+    `© ${new Date().getFullYear()} ${brand.company} - Rapport généré le ${new Date().toLocaleDateString("fr-FR")}`,
+    20,
+    footerY
+  );
+
+  // Convertir en Blob
+  const pdfBlob = pdf.output("blob");
+  return pdfBlob;
+}
