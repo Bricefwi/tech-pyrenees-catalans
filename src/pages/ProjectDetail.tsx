@@ -43,7 +43,7 @@ export default function ProjectDetail() {
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
-        setAnalysis(a?.contenu?.analysis || "");
+        setAnalysis(typeof a?.contenu === 'object' && a?.contenu !== null && 'analysis' in a.contenu ? String(a.contenu.analysis) : "");
       }
       
       setLoading(false);

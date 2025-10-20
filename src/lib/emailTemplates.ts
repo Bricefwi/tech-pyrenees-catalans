@@ -54,3 +54,87 @@ export function proposalEmailHtml({
   </body>
   </html>`;
 }
+
+export function projectProposalEmail({
+  clientName,
+  projectTitle,
+  message,
+  downloadLink,
+  companyName = "Tech Catalan",
+}: {
+  clientName: string;
+  projectTitle: string;
+  message: string;
+  downloadLink: string;
+  companyName?: string;
+}) {
+  return `
+  <!DOCTYPE html>
+  <html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: 'Inter', Arial, sans-serif;
+        background-color: #f9fafb;
+        margin: 0;
+        padding: 40px 0;
+        color: #111827;
+      }
+      .container {
+        background-color: #ffffff;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 32px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      h1 {
+        color: #1e3a8a;
+        font-size: 22px;
+        margin-bottom: 16px;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+      a.button {
+        display: inline-block;
+        background-color: #2563eb;
+        color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .footer {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 32px;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Bonjour ${clientName},</h1>
+      <p>Vous trouverez ci-joint le document d'analyse et la proposition pour le projet <strong>${projectTitle}</strong>.</p>
+
+      <p>${message}</p>
+
+      <p style="margin-top: 24px;">
+        <a href="${downloadLink}" class="button">📄 Télécharger la proposition</a>
+      </p>
+
+      <div class="footer">
+        ${companyName} — Analyse IA & Transformation Digitale.<br/>
+        Ce message a été généré automatiquement par notre plateforme de gestion de projets.
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
