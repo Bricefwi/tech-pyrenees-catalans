@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { analyzeProjectSpecs } from "@/lib/aiAnalysis";
+import { analyzeProjectSpecs, saveAnalysis } from "@/lib/aiAnalysis";
+import { toast } from "sonner";
 
 export default function AnalyzeSpecs() {
   const [specs, setSpecs] = useState("");
@@ -12,9 +13,31 @@ export default function AnalyzeSpecs() {
     setLoading(true);
     setResult(null);
     setError(null);
+    
     const { analysis, error } = await analyzeProjectSpecs({ specs, client });
-    if (error) setError(error);
-    else setResult(analysis || "Aucun résultat retourné.");
+    
+    if (error) {
+      setError(error);
+    } else {
+      const resultText = analysis || "Aucun résultat retourné.";
+      setResult(resultText);
+      
+      // 💾 Sauvegarder automatiquement l'analyse dans la base de données
+      try {
+        await saveAnalysis({
+          contenu: {
+            client,
+            specs,
+            analysis: resultText,
+          },
+        });
+        toast.success("Analyse sauvegardée avec succès");
+      } catch (saveError) {
+        console.error("Erreur de sauvegarde:", saveError);
+        toast.error("Analyse générée mais non sauvegardée - êtes-vous connecté ?");
+      }
+    }
+    
     setLoading(false);
   }
 

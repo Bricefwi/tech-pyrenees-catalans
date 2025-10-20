@@ -1,4 +1,4 @@
-// src/lib/aiAnalysis.ts
+import { supabase } from "@/integrations/supabase/client";
 
 const EDGE_URL = "https://nmlkqyhkygdajqaffzny.supabase.co/functions/v1/analyze-project-specs";
 
@@ -44,5 +44,55 @@ export async function analyzeProjectSpecs(input: AnalyzeInput): Promise<AnalyzeO
     });
   } catch (e: any) {
     return { error: e?.message || "Erreur réseau inattendue" };
+  }
+}
+
+// 💾 Fonction pour enregistrer l'analyse dans Supabase
+export async function saveAnalysis({
+  service_request_id,
+  contenu,
+}: {
+  service_request_id?: string;
+  contenu: any;
+}) {
+  try {
+    // Récupérer l'utilisateur connecté
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error("Utilisateur non connecté", userError);
+      throw new Error("Vous devez être connecté pour sauvegarder une analyse");
+    }
+
+    // Récupérer le profile_id correspondant à cet utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Profil non trouvé", profileError);
+      throw new Error("Profil utilisateur introuvable");
+    }
+
+    // Insérer l'analyse dans la base de données
+    const { error: insertError } = await supabase
+      .from("analyses")
+      .insert({
+        profile_id: profile.id,
+        service_request_id,
+        contenu,
+      });
+
+    if (insertError) {
+      console.error("Erreur lors de l'enregistrement de l'analyse :", insertError);
+      throw insertError;
+    }
+
+    console.log("✅ Analyse sauvegardée avec succès");
+  } catch (error) {
+    console.error("Erreur saveAnalysis:", error);
+    throw error;
   }
 }
