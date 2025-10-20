@@ -7,6 +7,19 @@ import { Loader2, FileText, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+type Quote = {
+  id: string;
+  quote_number?: string;
+  title?: string;
+  description?: string;
+  amount?: number;
+  amount_ht?: number;
+  amount_ttc?: number;
+  status: string;
+  pdf_url?: string;
+  created_at: string;
+};
+
 export default function ClientQuotes() {
   const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -22,27 +35,43 @@ export default function ClientQuotes() {
     });
   }, [navigate]);
 
-  const { data: quotes, isLoading } = useQuery({
+  const { data: quotes = [], isLoading } = useQuery<Quote[]>({
     queryKey: ["client-quotes", userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Quote[]> => {
       if (!userId) return [];
       
-      const { data: profile } = await supabase
+      // Récupérer d'abord le profile
+      const profileResponse = await supabase
         .from("profiles")
         .select("id")
         .eq("user_id", userId)
-        .single();
+        .limit(1);
 
-      if (!profile) return [];
+      if (profileResponse.error || !profileResponse.data?.[0]) return [];
+      
+      const profileId = profileResponse.data[0].id;
 
-      const { data, error } = await supabase
+      // Puis récupérer les devis (colonnes existantes dans la table quotes)
+      const quotesResponse = await supabase
         .from("quotes")
-        .select("*")
-        .eq("client_id", profile.id)
+        .select("id, quote_number, description, amount, status, created_at")
+        .eq("service_request_id", profileId)
         .order("created_at", { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (quotesResponse.error) throw quotesResponse.error;
+      
+      return (quotesResponse.data || []).map(q => ({
+        id: q.id,
+        quote_number: q.quote_number || undefined,
+        title: undefined,
+        description: q.description || undefined,
+        amount: q.amount || undefined,
+        amount_ht: undefined,
+        amount_ttc: undefined,
+        status: q.status,
+        pdf_url: undefined,
+        created_at: q.created_at,
+      }));
     },
     enabled: !!userId,
   });
@@ -127,7 +156,7 @@ export default function ClientQuotes() {
       <h1 className="text-3xl font-bold mb-6">Mes Devis</h1>
 
       <div className="grid gap-4">
-        {quotes?.map((quote: any) => (
+        {quotes?.map((quote) => (
           <div key={quote.id} className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-start mb-4">
               <div>
