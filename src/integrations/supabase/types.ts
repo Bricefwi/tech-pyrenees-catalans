@@ -833,47 +833,157 @@ export type Database = {
           },
         ]
       }
-      projects: {
+      project_jalons: {
         Row: {
-          client_name: string
-          created_at: string
-          created_by: string | null
-          critical_points: Json | null
-          end_date: string
+          created_at: string | null
+          description: string | null
+          end_date: string | null
           id: string
           progress: number | null
-          start_date: string
-          status: string
+          project_id: string | null
+          responsible: string | null
+          start_date: string | null
+          status: string | null
           title: string
-          updated_at: string
         }
         Insert: {
-          client_name: string
-          created_at?: string
-          created_by?: string | null
-          critical_points?: Json | null
-          end_date: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
           id?: string
           progress?: number | null
-          start_date: string
-          status?: string
+          project_id?: string | null
+          responsible?: string | null
+          start_date?: string | null
+          status?: string | null
           title: string
-          updated_at?: string
         }
         Update: {
-          client_name?: string
-          created_at?: string
-          created_by?: string | null
-          critical_points?: Json | null
-          end_date?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
           id?: string
           progress?: number | null
-          start_date?: string
-          status?: string
+          project_id?: string | null
+          responsible?: string | null
+          start_date?: string | null
+          status?: string | null
           title?: string
-          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_jalons_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_notes: {
+        Row: {
+          author_id: string | null
+          content: string
+          created_at: string | null
+          id: string
+          project_id: string | null
+          visibility: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          visibility?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_name: string | null
+          created_at: string | null
+          critical_points: Json | null
+          description: string | null
+          end_date: string | null
+          id: string
+          profile_id: string | null
+          progress: number | null
+          request_id: string | null
+          start_date: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string | null
+          critical_points?: Json | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          profile_id?: string | null
+          progress?: number | null
+          request_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string | null
+          critical_points?: Json | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          profile_id?: string | null
+          progress?: number | null
+          request_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotes: {
         Row: {
