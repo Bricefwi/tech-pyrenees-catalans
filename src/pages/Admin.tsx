@@ -55,13 +55,44 @@ export default function Admin() {
 
   return (
     <div className="p-6 space-y-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold mb-2">Administration</h1>
-          <p className="text-gray-600">
-            Suivi global des demandes et des propositions commerciales.
-          </p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold mb-2">Administration</h1>
+        <p className="text-gray-600 mb-4">
+          Suivi global des demandes et des propositions commerciales.
+        </p>
+        
+        {/* Navigation Workflow IMOTION */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <button
+            onClick={() => navigate("/admin/audits")}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="font-semibold text-sm">📋 Audits</div>
+            <div className="text-xs text-gray-500 mt-1">Génération IA & rapports</div>
+          </button>
+          <button
+            onClick={() => navigate("/admin/quotes")}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="font-semibold text-sm">💰 Devis</div>
+            <div className="text-xs text-gray-500 mt-1">Création & envoi</div>
+          </button>
+          <button
+            onClick={() => navigate("/admin/interventions")}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="font-semibold text-sm">🚀 Projets</div>
+            <div className="text-xs text-gray-500 mt-1">Planification & suivi</div>
+          </button>
+          <button
+            onClick={() => navigate("/admin/followups")}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="font-semibold text-sm">📞 Suivi</div>
+            <div className="text-xs text-gray-500 mt-1">Accompagnement client</div>
+          </button>
         </div>
+
         <button
           onClick={() => navigate("/admin/email-logs")}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
