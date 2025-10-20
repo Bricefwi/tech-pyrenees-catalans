@@ -47,10 +47,11 @@ serve(async (req) => {
       console.log(`CC administrateurs: ${ccAdmins.join(", ")}`);
     }
 
-    // Construire le corps du mail
+    // Construire le corps du mail avec BCC automatique ops@imotion.tech
     const emailData: any = {
       from: FROM_EMAIL,
       to: [to],
+      bcc: ['ops@imotion.tech'], // BCC automatique pour traçabilité
       subject,
       html,
     };
@@ -115,7 +116,7 @@ serve(async (req) => {
             ? "Proposition envoyée avec succès" 
             : "Échec d'envoi de la proposition",
           pdf_url: pdfUrl || null,
-          cc_admins: ccAdmins,
+          cc_admins: [...(ccAdmins || []), 'ops@imotion.tech'], // Inclure BCC dans les logs
           error_details: errorDetails,
         });
 
