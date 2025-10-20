@@ -87,6 +87,48 @@ export type Database = {
           },
         ]
       }
+      analyses: {
+        Row: {
+          contenu: Json
+          created_at: string | null
+          id: string
+          profile_id: string | null
+          service_request_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contenu: Json
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          service_request_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contenu?: Json
+          created_at?: string | null
+          id?: string
+          profile_id?: string | null
+          service_request_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analyses_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analyses_service_request_id_fkey"
+            columns: ["service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_questions: {
         Row: {
           created_at: string | null
