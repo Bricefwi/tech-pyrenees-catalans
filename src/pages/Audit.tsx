@@ -111,10 +111,8 @@ const Audit = () => {
       });
 
       // Vérifier si un rapport a déjà été généré et mis en cache
-      // @ts-ignore
       if (audit.generated_report) {
         console.log("✅ Rapport trouvé en cache - chargement instantané");
-        // @ts-ignore
         setAuditReport(audit.generated_report);
         setIsGeneratingReport(false);
         setIsLoading(false);
@@ -140,25 +138,14 @@ const Audit = () => {
         }
       );
 
-      if (reportError) throw reportError;
+      if (reportError) {
+        console.error("Erreur génération rapport:", reportError);
+        throw reportError;
+      }
       
       setAuditReport(reportData.report);
       
-      // Sauvegarder le rapport en cache pour les prochaines visualisations
-      const { error: updateError } = await supabase
-        .from("audits")
-        // @ts-ignore
-        .update({ 
-          generated_report: reportData.report,
-          report_generated_at: new Date().toISOString()
-        })
-        .eq("id", auditId);
-      
-      if (updateError) {
-        console.error("⚠️ Erreur sauvegarde du rapport en cache:", updateError);
-      } else {
-        console.log("✅ Rapport sauvegardé en cache pour les prochaines consultations");
-      }
+      console.log("✅ Rapport généré et sauvegardé en cache");
       
     } catch (error: any) {
       console.error("Error loading existing audit:", error);

@@ -23,62 +23,136 @@ serve(async (req) => {
       .from("audits")
       .select(`
         *,
-        profiles!audits_client_id_fkey(full_name, email),
-        companies(name),
-        service_requests(title, description)
+        audited_companies(name, sector, contact_name, contact_email)
       `)
       .eq("id", audit_id)
       .single();
 
     if (auditError || !audit) {
       console.error("Audit not found:", auditError);
-      return new Response(JSON.stringify({ error: "Audit not found" }), { 
+      return new Response(JSON.stringify({ error: "Audit not found", details: auditError }), { 
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+    // Récupérer les secteurs, questions et réponses
+    const { data: sectorsData } = await supabase
+      .from("audit_sectors")
+      .select("*")
+      .order("order_index");
+
+    const { data: questionsData } = await supabase
+      .from("audit_questions")
+      .select("*")
+      .order("order_index");
+
+    const { data: responsesData } = await supabase
+      .from("audit_responses")
+      .select("*")
+      .eq("audit_id", audit_id);
+
+    const { data: commentsData } = await supabase
+      .from("sector_comments")
+      .select(`
+        comment,
+        sector_id,
+        audit_sectors!inner(name)
+      `)
+      .eq("audit_id", audit_id);
+
+    // Analyser les réponses pour générer des insights
+    const totalQuestions = questionsData?.length || 0;
+    const answeredQuestions = responsesData?.length || 0;
+    const averageScore = responsesData?.reduce((sum, r) => sum + (r.score || 0), 0) / answeredQuestions || 0;
+
+    // Grouper les réponses par secteur
+    const sectorScores = sectorsData?.map(sector => {
+      const sectorQuestions = questionsData?.filter(q => q.sector_id === sector.id) || [];
+      const sectorResponses = sectorQuestions.map(q => 
+        responsesData?.find(r => r.question_id === q.id)
+      ).filter(r => r);
+      
+      const sectorScore = sectorResponses.reduce((sum, r) => sum + (r?.score || 0), 0);
+      const maxScore = sectorQuestions.reduce((sum, q) => sum + (q.weighting || 1), 0);
+      
+      return {
+        name: sector.name,
+        score: sectorScore,
+        maxScore: maxScore,
+        percentage: maxScore > 0 ? Math.round((sectorScore / maxScore) * 100) : 0
+      };
+    }) || [];
+
     // Construire le prompt pour l'IA
     const prompt = `
 Vous êtes un expert en audit digital pour IMOTION, intégrateur Apple et solutions IA.
 
-Contexte du projet:
-- Titre: ${audit.title || audit.service_requests?.title || 'Sans titre'}
-- Description: ${audit.service_requests?.description || 'Non spécifiée'}
-- Périmètre: ${audit.scope || 'À définir'}
-- Client: ${audit.profiles?.full_name || 'Non spécifié'}
-- Entreprise: ${audit.companies?.name || 'Particulier'}
+INFORMATIONS SUR L'ENTREPRISE AUDITÉE:
+- Nom: ${audit.audited_companies?.name || 'Non spécifié'}
+- Secteur d'activité: ${audit.audited_companies?.sector || 'Non spécifié'}
+- Contact: ${audit.audited_companies?.contact_name || ''} (${audit.audited_companies?.contact_email || ''})
 
-Générez un rapport d'audit structuré et actionnable comprenant:
+RÉSULTATS DE L'AUDIT:
+- Questions posées: ${totalQuestions}
+- Questions répondues: ${answeredQuestions}
+- Score moyen global: ${Math.round(averageScore * 100)}%
 
-1. SYNTHÈSE EXÉCUTIVE
+SCORES PAR SECTEUR:
+${sectorScores.map(s => `- ${s.name}: ${s.percentage}% (${s.score}/${s.maxScore})`).join('\n')}
+
+COMMENTAIRES DU CLIENT:
+${commentsData?.map((c: any) => `- ${c.audit_sectors?.name}: ${c.comment}`).join('\n') || 'Aucun commentaire'}
+
+Générez un rapport d'audit structuré, professionnel et actionnable comprenant:
+
+1. **SYNTHÈSE EXÉCUTIVE**
    - Résumé en 3-4 points clés
+   - Score global de maturité digitale
    - Enjeux principaux identifiés
 
-2. ANALYSE DÉTAILLÉE
-   - État actuel de la situation
+2. **ANALYSE PAR SECTEUR**
+   Pour chaque secteur analysé, détaillez:
+   - État actuel (score et constats)
    - Points forts existants
    - Points d'amélioration prioritaires
    - Risques identifiés
 
-3. SOLUTIONS PROPOSÉES
-   - Recommandations techniques
-   - Solutions Apple et IA adaptées
-   - Quick wins (résultats rapides)
-   - Améliorations à moyen terme
+3. **SOLUTIONS PROPOSÉES PAR IMOTION**
+   - Recommandations techniques concrètes
+   - Solutions Apple et IA adaptées au contexte
+   - Quick wins (résultats rapides en 1-2 mois)
+   - Améliorations structurelles à moyen terme (3-6 mois)
+   - Évolution stratégique à long terme
 
-4. JALONS ET LIVRABLES PROPOSÉS
-   - Phase 1: Diagnostic et planification (2 semaines)
-   - Phase 2: Mise en œuvre (4-8 semaines)
-   - Phase 3: Formation et accompagnement (2 semaines)
-   - Phase 4: Optimisation continue
+4. **PLAN D'ACCOMPAGNEMENT PROPOSÉ**
+   - **Phase 1: Diagnostic approfondi et planification** (2-3 semaines)
+     * Audit technique détaillé
+     * Cartographie des processus
+     * Définition des objectifs
+   
+   - **Phase 2: Mise en œuvre des solutions** (4-12 semaines selon périmètre)
+     * Installation et configuration
+     * Migration des données
+     * Intégration des outils
+   
+   - **Phase 3: Formation et accompagnement** (2-4 semaines)
+     * Formation des équipes
+     * Documentation
+     * Support dédié
+   
+   - **Phase 4: Optimisation continue**
+     * Suivi des KPIs
+     * Ajustements et améliorations
+     * Support technique
 
-5. BÉNÉFICES ATTENDUS
-   - Gains de productivité estimés
-   - ROI prévisionnel
-   - Impact sur l'organisation
+5. **BÉNÉFICES ATTENDUS**
+   - Gains de productivité estimés (en % ou en heures/jour)
+   - ROI prévisionnel sur 12-24 mois
+   - Impact sur l'organisation et les équipes
+   - Avantages compétitifs
 
-Format: Markdown structuré, professionnel, orienté solutions IMOTION.
+Format: Markdown structuré, professionnel, orienté solutions IMOTION. Soyez spécifique et actionnable.
 `;
 
     // Appeler l'IA via Lovable Gateway
@@ -145,10 +219,11 @@ Format: Markdown structuré, professionnel, orienté solutions IMOTION.
 <body>
   <div class="container">
     <div class="header">
-      <h1>Rapport d'Audit IMOTION</h1>
+      <h1>Rapport d'Audit Digital IMOTION</h1>
       <div class="subtitle">
-        Client: ${audit.profiles?.full_name || 'Non spécifié'} ${audit.companies?.name ? `(${audit.companies.name})` : ''}<br>
-        Date: ${new Date().toLocaleDateString('fr-FR')}
+        Entreprise: ${audit.audited_companies?.name || 'Non spécifié'}<br>
+        Contact: ${audit.audited_companies?.contact_name || ''}<br>
+        Date: ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
       </div>
     </div>
     <div class="content">
@@ -168,33 +243,14 @@ Format: Markdown structuré, professionnel, orienté solutions IMOTION.
 </html>
     `;
 
-    // Uploader le rapport dans le storage
-    const fileName = `report-${audit_id}-${Date.now()}.html`;
-    const { error: uploadError } = await supabase.storage
-      .from("audit-reports")
-      .upload(fileName, new Blob([html], { type: "text/html" }), { 
-        upsert: true,
-        contentType: "text/html"
-      });
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      throw uploadError;
-    }
-
-    // Obtenir l'URL publique
-    const { data: urlData } = supabase.storage
-      .from("audit-reports")
-      .getPublicUrl(fileName);
-
-    const reportUrl = urlData.publicUrl;
-
-    // Mettre à jour l'audit
+    // Stocker le rapport HTML directement dans la base de données
     const { error: updateError } = await supabase
       .from("audits")
       .update({ 
-        report_pdf_url: reportUrl, 
-        status: "Prêt",
+        generated_report: html,
+        report_generated_at: new Date().toISOString(),
+        status: "completed",
+        global_score: Math.round(averageScore * 100),
         updated_at: new Date().toISOString()
       })
       .eq("id", audit_id);
@@ -208,41 +264,19 @@ Format: Markdown structuré, professionnel, orienté solutions IMOTION.
     await supabase.from("workflow_logs").insert({
       entity_type: "audit",
       entity_id: audit_id,
-      action: "AUDIT_AI_READY",
-      details: { report_url: reportUrl },
-      performed_by: audit.client_id
+      action: "AUDIT_REPORT_GENERATED",
+      details: { score: Math.round(averageScore * 100) },
+      performed_by: audit.created_by
     });
 
-    console.log("Audit report generated successfully:", reportUrl);
-
-    // Envoyer l'email (appel à send-proposal-email)
-    try {
-      await supabase.functions.invoke('send-proposal-email', {
-        body: {
-          to: audit.profiles?.email,
-          subject: "Votre rapport d'audit IMOTION est prêt",
-          html: `
-            <h2>Votre rapport d'audit est disponible</h2>
-            <p>Bonjour ${audit.profiles?.full_name || 'Client'},</p>
-            <p>Nous avons analysé votre besoin en détail. Votre rapport d'audit personnalisé est maintenant disponible.</p>
-            <p><a href="${reportUrl}" style="background:#111;color:#fff;padding:12px 24px;border-radius:8px;display:inline-block;text-decoration:none;margin:20px 0;">Consulter le rapport</a></p>
-            <p>Notre équipe reste à votre disposition pour échanger sur les recommandations et prochaines étapes.</p>
-            <p>Cordialement,<br>L'équipe IMOTION</p>
-          `,
-          ccAdmins: ['ops@imotion.tech'],
-          relatedRequest: audit.request_id,
-          relatedProfile: audit.client_id
-        }
-      });
-    } catch (emailError) {
-      console.error("Email sending error (non-blocking):", emailError);
-    }
+    console.log("Audit report generated successfully");
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        report_url: reportUrl,
-        audit_id: audit_id
+        success: true,
+        report: html,
+        audit_id: audit_id,
+        score: Math.round(averageScore * 100)
       }), 
       { 
         status: 200,
