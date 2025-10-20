@@ -1,0 +1,79 @@
+.gantt-container {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  padding: 20px;
+  overflow-x: auto;
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Couleur principale des barres */
+.gantt .bar {
+  fill: hsl(var(--primary)) !important;
+  stroke: hsl(var(--primary) / 0.8);
+  rx: 3;
+  ry: 3;
+}
+
+/* Texte à l'intérieur du Gantt */
+.gantt text {
+  fill: hsl(var(--foreground));
+  font-size: 12px;
+  font-family: "Inter", sans-serif;
+}
+
+/* Survol des tâches */
+.gantt .bar:hover {
+  fill: hsl(var(--primary) / 0.9) !important;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+/* Barres selon statut */
+.gantt .bar-green {
+  fill: hsl(142, 76%, 36%) !important;
+  stroke: hsl(142, 76%, 26%);
+}
+
+.gantt .bar-blue {
+  fill: hsl(var(--primary)) !important;
+  stroke: hsl(var(--primary) / 0.8);
+}
+
+.gantt .bar-yellow {
+  fill: hsl(48, 96%, 53%) !important;
+  stroke: hsl(48, 96%, 43%);
+}
+
+/* Grille et arrière-plan */
+.gantt .grid-background {
+  fill: hsl(var(--muted));
+}
+
+.gantt .grid-header {
+  fill: hsl(var(--muted) / 0.5);
+}
+
+/* Lignes de grille */
+.gantt .grid-row {
+  fill: transparent;
+}
+
+.gantt .row-line {
+  stroke: hsl(var(--border));
+}
+
+/* En-têtes de dates */
+.gantt .upper-text, .gantt .lower-text {
+  fill: hsl(var(--foreground));
+  font-weight: 500;
+}
+
+/* Popup personnalisé */
+.gantt .popup-wrapper {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  box-shadow: var(--shadow-elevated);
+  color: hsl(var(--popover-foreground));
+}
