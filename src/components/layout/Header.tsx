@@ -46,11 +46,13 @@ export default function Header() {
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-surface-border">
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <img 
-            src={logoImotion} 
-            alt="IMOTION" 
-            className="h-10 w-auto"
-          />
+          <div className="bg-white rounded-lg px-3 py-2 shadow-sm">
+            <img 
+              src={logoImotion} 
+              alt="IMOTION" 
+              className="h-12 w-auto"
+            />
+          </div>
         </Link>
 
         {/* Mobile menu button */}
