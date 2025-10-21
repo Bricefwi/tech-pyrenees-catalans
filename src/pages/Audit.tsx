@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import SeoSchema from "@/components/SeoSchema";
-import Header from "@/components/layout/Header";
 
 interface AuditSector {
   id: string;
@@ -458,7 +457,6 @@ const Audit = () => {
         offersPrice="490"
       />
 
-      <Header />
       <main className="container mx-auto px-4 pt-24 pb-12">
         {viewMode && auditReport ? (
           <div className="max-w-4xl mx-auto space-y-6">

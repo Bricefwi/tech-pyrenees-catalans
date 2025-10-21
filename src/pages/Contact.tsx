@@ -7,7 +7,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 import SeoSchema from "@/components/SeoSchema";
-import Header from "@/components/layout/Header";
 import { z } from "zod";
 
 const contactSchema = z.object({
@@ -89,7 +88,6 @@ const Contact = () => {
         serviceType="Support Apple & IA"
       />
 
-      <Header />
       <div className="bg-gradient-to-br from-background via-background to-muted/20 py-20 px-4 pt-24">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16 space-y-4">
