@@ -38,6 +38,7 @@ import AdminFollowups from "./pages/AdminFollowups";
 import ClientQuotes from "./pages/ClientQuotes";
 import ClientProjects from "./pages/ClientProjects";
 import ClientRequestChat from "./pages/ClientRequestChat";
+import AdminCommunicationPreview from "./pages/AdminCommunicationPreview";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 
@@ -93,6 +94,7 @@ const App = () => (
               <Route path="/client/chat/:requestId" element={<ClientRequestChat />} />
               <Route path="/admin/tests" element={<TestRunner />} />
               <Route path="/tests" element={<TestRunner />} />
+              <Route path="/admin/communication-aperçu" element={<AdminCommunicationPreview />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
