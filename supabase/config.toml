@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-preReception-report]
 verify_jwt = false
+
+[functions.generate-demo-audit-json]
+verify_jwt = false

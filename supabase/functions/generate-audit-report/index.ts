@@ -1,713 +1,558 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
+// supabase/functions/generate-audit-report/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.3";
+import OpenAI from "npm:openai@4.52.5";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// ---------- Types & Helpers
+type Sector = {
+  sector_id: string;
+  sector_name: string;
+  weighting: number;
+  score: number;
+  comments: string | null;
 };
 
+type AuditDTO = {
+  audit_id: string;
+  title: string | null;
+  created_at: string;
+  status: string;
+  company_name: string | null;
+  client_name: string | null;
+  client_email: string | null;
+  generated_report: string | null;
+  sectors: Sector[];
+  responses: Array<{
+    sector_id: string;
+    sector_name: string;
+    question: string;
+    response_value: string | number | null;
+    score: number | null;
+    comment: string | null;
+  }>;
+};
+
+const BRAND = {
+  name: "IMOTION",
+  color: "#E11932",
+  dark: "#111111",
+  light: "#f7f7f8",
+  gray: "#6B7280",
+  logoUrl: "https://nmlkqyhkygdajqaffzny.supabase.co/storage/v1/object/public/imotion-docs/logo-imotion.png",
+};
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// ---------- HTTP handler
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { audit_id } = await req.json();
-    
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const url = new URL(req.url);
+    const auditId = url.searchParams.get("audit_id");
+    if (!auditId) {
+      return new Response(
+        JSON.stringify({ error: "Missing audit_id parameter" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Récupérer l'audit avec toutes les infos nécessaires
-    const { data: audit, error: auditError } = await supabase
+    console.log(`[generate-audit-report] Processing audit: ${auditId}`);
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY")! });
+
+    // 1) Load audit metadata
+    const { data: auditMeta, error: e1 } = await supabase
       .from("audits")
       .select(`
-        *,
-        audited_companies(name, sector, contact_name, contact_email)
+        id, created_at, status, 
+        company:audited_companies(name),
+        created_by, generated_report
       `)
-      .eq("id", audit_id)
+      .eq("id", auditId)
       .single();
 
-    if (auditError || !audit) {
-      console.error("Audit not found:", auditError);
-      return new Response(JSON.stringify({ error: "Audit not found", details: auditError }), { 
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    if (e1 || !auditMeta) {
+      console.error("[generate-audit-report] Audit not found:", e1?.message);
+      return new Response(
+        JSON.stringify({ error: "Audit not found", details: e1?.message }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get client info
+    let clientName = "Client";
+    let clientEmail = "";
+    if (auditMeta.created_by) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", auditMeta.created_by)
+        .single();
+      if (profile) {
+        clientName = profile.full_name || clientName;
+        clientEmail = profile.email || "";
+      }
+    }
+
+    // 2) Load sectors
+    const { data: sectorsRaw, error: e2 } = await supabase
+      .from("audit_sectors")
+      .select("id, name, weighting")
+      .order("order_index", { ascending: true });
+    if (e2) {
+      console.error("[generate-audit-report] Error loading sectors:", e2.message);
+      throw e2;
+    }
+
+    // 3) Load responses
+    const { data: respRaw, error: e3 } = await supabase
+      .from("audit_responses")
+      .select(`
+        question_id,
+        response_value,
+        score,
+        audit_questions!inner(
+          id, question_text, sector_id, subdomain
+        )
+      `)
+      .eq("audit_id", auditId);
+    if (e3) {
+      console.error("[generate-audit-report] Error loading responses:", e3.message);
+      throw e3;
+    }
+
+    // 4) Load sector comments
+    const { data: commentsRaw } = await supabase
+      .from("sector_comments")
+      .select("sector_id, comment")
+      .eq("audit_id", auditId);
+
+    // 5) Aggregate sectors with scores
+    const sectors: Sector[] = (sectorsRaw ?? []).map((s) => {
+      const scores = (respRaw ?? [])
+        .filter((r: any) => r.audit_questions?.sector_id === s.id && r.score != null)
+        .map((r: any) => Number(r.score));
+      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      const comment = (commentsRaw ?? []).find((c) => c.sector_id === s.id)?.comment ?? null;
+      return {
+        sector_id: s.id,
+        sector_name: s.name,
+        weighting: Number(s.weighting ?? 0),
+        score: Number(avg.toFixed(2)),
+        comments: comment,
+      };
+    });
+
+    const responses = (respRaw ?? []).map((r: any) => ({
+      sector_id: r.audit_questions?.sector_id!,
+      sector_name: sectors.find((s) => s.sector_id === r.audit_questions?.sector_id)?.sector_name ?? "",
+      question: r.audit_questions?.question_text ?? "",
+      response_value: r.response_value,
+      score: r.score,
+      comment: null as string | null,
+    }));
+
+    // 6) Build DTO
+    const dto: AuditDTO = {
+      audit_id: auditMeta.id,
+      title: "Audit de maturité numérique",
+      created_at: auditMeta.created_at,
+      status: auditMeta.status,
+      company_name: (auditMeta.company as any)?.name ?? null,
+      client_name: clientName,
+      client_email: clientEmail,
+      generated_report: auditMeta.generated_report,
+      sectors,
+      responses,
+    };
+
+    // 7) If report already exists and force is not set, return it
+    if (dto.generated_report && url.searchParams.get("force") !== "1") {
+      console.log("[generate-audit-report] Returning cached report");
+      return new Response(dto.generated_report, {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
       });
     }
 
-    // Récupérer les secteurs, questions et réponses
-    const { data: sectorsData } = await supabase
-      .from("audit_sectors")
-      .select("*")
-      .order("order_index");
+    // 8) Calculate weighted score and sector priorities
+    const sectorBlocks = dto.sectors
+      .map((s) => {
+        const maturityPct = Math.round((s.score / 20) * 100);
+        return {
+          ...s,
+          maturity_pct: maturityPct,
+          deficit_weighted: Number(((20 - s.score) * (s.weighting / 100)).toFixed(2)),
+        };
+      })
+      .sort((a, b) => b.deficit_weighted - a.deficit_weighted);
 
-    const { data: questionsData } = await supabase
-      .from("audit_questions")
-      .select("*")
-      .order("order_index");
+    const weightedScore = sectorBlocks.reduce((acc, s) => acc + (s.score / 20) * s.weighting, 0);
 
-    const { data: responsesData } = await supabase
-      .from("audit_responses")
-      .select("*")
-      .eq("audit_id", audit_id);
+    console.log("[generate-audit-report] Calculated weighted score:", weightedScore.toFixed(1));
 
-    const { data: commentsData } = await supabase
-      .from("sector_comments")
-      .select(`
-        comment,
-        sector_id,
-        audit_sectors!inner(name)
-      `)
-      .eq("audit_id", audit_id);
-
-    // Analyser les réponses pour générer des insights
-    const totalQuestions = questionsData?.length || 0;
-    const answeredQuestions = responsesData?.length || 0;
-    const averageScore = responsesData?.reduce((sum, r) => sum + (r.score || 0), 0) / answeredQuestions || 0;
-
-    // Grouper les réponses par secteur
-    const sectorScores = sectorsData?.map(sector => {
-      const sectorQuestions = questionsData?.filter(q => q.sector_id === sector.id) || [];
-      const sectorResponses = sectorQuestions.map(q => 
-        responsesData?.find(r => r.question_id === q.id)
-      ).filter(r => r);
-      
-      const sectorScore = sectorResponses.reduce((sum, r) => sum + (r?.score || 0), 0);
-      const maxScore = sectorQuestions.reduce((sum, q) => sum + (q.weighting || 1), 0);
-      
-      return {
-        name: sector.name,
-        score: sectorScore,
-        maxScore: maxScore,
-        percentage: maxScore > 0 ? Math.round((sectorScore / maxScore) * 100) : 0
-      };
-    }) || [];
-
-    // Construire le prompt pour l'IA
+    // 9) Generate AI report with structured JSON output
     const prompt = `
-Vous êtes un expert en audit digital pour IMOTION, intégrateur Apple et solutions IA.
+Tu es un consultant senior IMOTION spécialisé en transformation numérique (Apple & IA). 
+Analyse cet audit numérique et fournis un rapport structuré en JSON.
 
-INFORMATIONS SUR L'ENTREPRISE AUDITÉE:
-- Nom: ${audit.audited_companies?.name || 'Non spécifié'}
-- Secteur d'activité: ${audit.audited_companies?.sector || 'Non spécifié'}
-- Contact: ${audit.audited_companies?.contact_name || ''} (${audit.audited_companies?.contact_email || ''})
+DONNÉES:
+- Client: ${dto.client_name} / ${dto.company_name ?? "—"} / Email: ${dto.client_email}
+- Score global pondéré: ${weightedScore.toFixed(1)}%
+- Secteurs (ordre priorité = manque pondéré décroissant): 
+${sectorBlocks.map((s) => `  - ${s.sector_name} (poids ${s.weighting}%, score ${s.score}/20, maturité ${s.maturity_pct}%)`).join("\n")}
+- Réponses détaillées: ${JSON.stringify(dto.responses.slice(0, 50))}
 
-RÉSULTATS DE L'AUDIT:
-- Questions posées: ${totalQuestions}
-- Questions répondues: ${answeredQuestions}
-- Score moyen global: ${Math.round(averageScore * 100)}%
+INSTRUCTIONS:
+1) **Rappel exhaustif** : Liste par secteur -> question -> réponse + score
+2) **Analyse critique** : Pour chaque secteur, synthèse des faiblesses, risques, recommandations
+   - Quick wins (≤4 semaines)
+   - Chantiers (2-6 mois)
+   - Gains estimés (prudents, bornés min-max) : temps admin, erreurs, ruptures stock, DSO, trafic, conversion
+3) **Plan d'accompagnement** : 4 phases avec jalons, livrables, critères succès, risques, mitigations, Gantt JSON
 
-SCORES PAR SECTEUR:
-${sectorScores.map(s => `- ${s.name}: ${s.percentage}% (${s.score}/${s.maxScore})`).join('\n')}
-
-COMMENTAIRES DU CLIENT:
-${commentsData?.map((c: any) => `- ${c.audit_sectors?.name}: ${c.comment}`).join('\n') || 'Aucun commentaire'}
-
-Générez un rapport d'audit structuré, professionnel et actionnable comprenant:
-
-1. **SYNTHÈSE EXÉCUTIVE**
-   - Résumé en 3-4 points clés
-   - Score global de maturité digitale
-   - Enjeux principaux identifiés
-
-2. **ANALYSE PAR SECTEUR**
-   Pour chaque secteur analysé, détaillez:
-   - État actuel (score et constats)
-   - Points forts existants
-   - Points d'amélioration prioritaires
-   - Risques identifiés
-
-3. **SOLUTIONS PROPOSÉES PAR IMOTION**
-   - Recommandations techniques concrètes
-   - Solutions Apple et IA adaptées au contexte
-   - Quick wins (résultats rapides en 1-2 mois)
-   - Améliorations structurelles à moyen terme (3-6 mois)
-   - Évolution stratégique à long terme
-
-4. **PLAN D'ACCOMPAGNEMENT PROPOSÉ**
-   - **Phase 1: Diagnostic approfondi et planification** (2-3 semaines)
-     * Audit technique détaillé
-     * Cartographie des processus
-     * Définition des objectifs
-   
-   - **Phase 2: Mise en œuvre des solutions** (4-12 semaines selon périmètre)
-     * Installation et configuration
-     * Migration des données
-     * Intégration des outils
-   
-   - **Phase 3: Formation et accompagnement** (2-4 semaines)
-     * Formation des équipes
-     * Documentation
-     * Support dédié
-   
-   - **Phase 4: Optimisation continue**
-     * Suivi des KPIs
-     * Ajustements et améliorations
-     * Support technique
-
-5. **BÉNÉFICES ATTENDUS**
-   - Gains de productivité estimés (en % ou en heures/jour)
-   - ROI prévisionnel sur 12-24 mois
-   - Impact sur l'organisation et les équipes
-   - Avantages compétitifs
-
-Format: Markdown structuré, professionnel, orienté solutions IMOTION. Soyez spécifique et actionnable.
+FORMAT JSON STRICT:
+{
+  "recap": [
+    { "sector": "nom", "weighting": 0-100, "maturity_pct": 0-100,
+      "items": [{"question": "...", "response": "...", "score": 0-20}]
+    }
+  ],
+  "improvements": [
+    { "sector": "nom", 
+      "quick_wins": ["..."], 
+      "projects": ["..."], 
+      "estimated_gains": {
+        "admin_time": {"min": 0, "max": 0}, 
+        "input_errors": {"min":0,"max":0},
+        "stockouts": {"min":0,"max":0}, 
+        "dso": {"min":0,"max":0},
+        "traffic": {"min":0,"max":0}, 
+        "conversion": {"min":0,"max":0}
+      }
+    }
+  ],
+  "roadmap": {
+    "phases": [
+      { "name": "Phase 1 – ...", "weeks": 0, "deliverables": ["..."], 
+        "success_criteria": ["..."], "risks": ["..."], "mitigations": ["..."] }
+    ],
+    "gantt": [
+      { "id": "T1", "name": "Cadrage", "start": "2025-11-04", "end": "2025-11-29", "progress": 0 },
+      { "id": "T2", "name": "Quick wins", "start": "2025-12-02", "end": "2025-12-27", "progress": 0, "dependencies": "T1" }
+    ],
+    "effort_table": [
+      { "workstream": "Automatisation", "effort_weeks": 4 }
+    ]
+  }
+}
 `;
 
-    // Appeler l'IA via Lovable Gateway
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
+    console.log("[generate-audit-report] Calling OpenAI for analysis...");
 
-    console.log("Calling AI Gateway for audit report...");
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { 
-            role: "system", 
-            content: "Vous êtes un expert en audit digital et transformation numérique pour IMOTION. Vous rédigez des rapports structurés, actionnables et orientés solutions Apple et IA."
-          },
-          { role: "user", content: prompt }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7
-      }),
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un consultant IMOTION, style concis, opérationnel, orienté ROI.",
+        },
+        { role: "user", content: prompt },
+      ],
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", errorText);
-      throw new Error(`AI Gateway error: ${aiResponse.status} - ${errorText}`);
-    }
+    const json = JSON.parse(completion.choices[0].message.content ?? "{}");
+    console.log("[generate-audit-report] AI analysis completed");
 
-    const aiJson = await aiResponse.json();
-    const reportContent = aiJson?.choices?.[0]?.message?.content || "Rapport indisponible.";
+    // 10) Transform to branded HTML
+    const html = renderReportHTML({
+      brand: BRAND,
+      meta: {
+        reference: `AUD-${dto.audit_id.slice(0, 8)}`,
+        date: new Date().toLocaleDateString("fr-FR"),
+        client: dto.client_name || "Client",
+        company: dto.company_name || "—",
+        email: dto.client_email || "—",
+        weightedScore: `${weightedScore.toFixed(1)}%`,
+        tagline: "Accélérer sans casser : des gains mesurables, vite.",
+      },
+      recap: json.recap ?? [],
+      improvements: json.improvements ?? [],
+      roadmap: json.roadmap ?? { phases: [], gantt: [], effort_table: [] },
+    });
 
-    console.log("AI report generated successfully");
-
-    // Fonction pour convertir le markdown en HTML
-    function formatMarkdownToHTML(markdown: string): string {
-      let html = markdown;
-      
-      // Titres
-      html = html.replace(/### (.*?)(\n|$)/g, '<h4>$1</h4>');
-      html = html.replace(/## (.*?)(\n|$)/g, '<h3>$1</h3>');
-      html = html.replace(/# (.*?)(\n|$)/g, '<h2>$1</h2>');
-      
-      // Gras
-      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      
-      // Listes
-      const lines = html.split('\n');
-      let inList = false;
-      const processedLines: string[] = [];
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (line.startsWith('- ') || line.startsWith('* ')) {
-          if (!inList) {
-            processedLines.push('<ul>');
-            inList = true;
-          }
-          processedLines.push(`<li>${line.substring(2)}</li>`);
-        } else {
-          if (inList) {
-            processedLines.push('</ul>');
-            inList = false;
-          }
-          if (line && !line.startsWith('<h')) {
-            processedLines.push(`<p>${line}</p>`);
-          } else {
-            processedLines.push(line);
-          }
-        }
-      }
-      
-      if (inList) {
-        processedLines.push('</ul>');
-      }
-      
-      return processedLines.join('\n');
-    }
-
-    // Générer le HTML du rapport avec le branding IMOTION
-    const formattedContent = formatMarkdownToHTML(reportContent);
-    
-    const html = `
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rapport d'Audit Digital IMOTION - ${audit.audited_companies?.name || 'Entreprise'}</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-      color: #1F2937; 
-      background: #F9FAFB; 
-      margin: 0; 
-      padding: 0;
-      line-height: 1.6;
-    }
-    .page { 
-      max-width: 900px; 
-      margin: 0 auto; 
-      background: white; 
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    }
-    
-    /* Page de couverture */
-    .cover-page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
-      color: white;
-      text-align: center;
-      padding: 60px 40px;
-      page-break-after: always;
-    }
-    .cover-page .logo {
-      font-size: 36px;
-      font-weight: 800;
-      color: #E31E24;
-      margin-bottom: 40px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    .cover-page h1 {
-      font-size: 42px;
-      font-weight: 700;
-      margin: 0 0 20px 0;
-      line-height: 1.2;
-    }
-    .cover-page .subtitle {
-      font-size: 24px;
-      font-weight: 300;
-      margin-bottom: 60px;
-      opacity: 0.9;
-    }
-    .cover-page .client-info {
-      background: rgba(255,255,255,0.1);
-      border-radius: 12px;
-      padding: 30px 40px;
-      backdrop-filter: blur(10px);
-      margin-top: 40px;
-    }
-    .cover-page .client-info p {
-      margin: 8px 0;
-      font-size: 16px;
-    }
-    .cover-page .date {
-      margin-top: 60px;
-      font-size: 14px;
-      opacity: 0.7;
-    }
-    
-    /* Score global */
-    .score-banner {
-      background: linear-gradient(135deg, #E31E24 0%, #DC2626 100%);
-      color: white;
-      padding: 40px;
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .score-value {
-      font-size: 72px;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 10px;
-    }
-    .score-label {
-      font-size: 18px;
-      opacity: 0.95;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    
-    /* Sections du contenu */
-    .content-section {
-      padding: 40px;
-    }
-    .section-header {
-      border-left: 4px solid #E31E24;
-      padding-left: 20px;
-      margin-bottom: 30px;
-    }
-    .section-title {
-      font-size: 28px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0 0 8px 0;
-    }
-    .section-subtitle {
-      font-size: 14px;
-      color: #6B7280;
-      margin: 0;
-    }
-    
-    /* Scores par secteur */
-    .sector-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin: 30px 0;
-    }
-    .sector-card {
-      border: 1px solid #E5E7EB;
-      border-radius: 12px;
-      padding: 24px;
-      background: #FAFAFA;
-    }
-    .sector-card h3 {
-      margin: 0 0 16px 0;
-      font-size: 16px;
-      color: #111827;
-      font-weight: 600;
-    }
-    .sector-score {
-      font-size: 36px;
-      font-weight: 700;
-      color: #E31E24;
-      margin-bottom: 8px;
-    }
-    .sector-bar {
-      height: 8px;
-      background: #E5E7EB;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 12px;
-    }
-    .sector-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #E31E24 0%, #DC2626 100%);
-      transition: width 0.3s ease;
-    }
-    
-    /* Plan d'accompagnement */
-    .timeline {
-      position: relative;
-      padding: 20px 0;
-      margin: 40px 0;
-    }
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 30px;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: #E5E7EB;
-    }
-    .timeline-item {
-      position: relative;
-      padding-left: 80px;
-      padding-bottom: 40px;
-    }
-    .timeline-marker {
-      position: absolute;
-      left: 18px;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: #E31E24;
-      border: 4px solid white;
-      box-shadow: 0 0 0 3px #E5E7EB;
-    }
-    .timeline-content {
-      background: #F9FAFB;
-      border: 1px solid #E5E7EB;
-      border-radius: 12px;
-      padding: 24px;
-    }
-    .timeline-content h4 {
-      margin: 0 0 8px 0;
-      font-size: 18px;
-      color: #111827;
-      font-weight: 600;
-    }
-    .timeline-content .duration {
-      color: #E31E24;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 12px;
-    }
-    .timeline-content ul {
-      margin: 12px 0 0 0;
-      padding-left: 20px;
-    }
-    .timeline-content li {
-      margin: 6px 0;
-      color: #4B5563;
-    }
-    
-    /* Recommandations */
-    .recommendation-card {
-      border-left: 4px solid #E31E24;
-      background: #FEFCE8;
-      border-radius: 8px;
-      padding: 20px 24px;
-      margin: 16px 0;
-    }
-    .recommendation-card.priority-high {
-      border-left-color: #DC2626;
-      background: #FEE2E2;
-    }
-    .recommendation-card.priority-medium {
-      border-left-color: #F59E0B;
-      background: #FEF3C7;
-    }
-    .recommendation-card.priority-low {
-      border-left-color: #10B981;
-      background: #D1FAE5;
-    }
-    .recommendation-card h4 {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #111827;
-    }
-    .recommendation-card .priority-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    .priority-high .priority-badge {
-      background: #DC2626;
-      color: white;
-    }
-    .priority-medium .priority-badge {
-      background: #F59E0B;
-      color: white;
-    }
-    .priority-low .priority-badge {
-      background: #10B981;
-      color: white;
-    }
-    
-    /* Bénéfices */
-    .benefits-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 24px;
-      margin: 30px 0;
-    }
-    .benefit-card {
-      text-align: center;
-      padding: 24px;
-      background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
-      border-radius: 12px;
-      border: 1px solid #E5E7EB;
-    }
-    .benefit-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-    .benefit-value {
-      font-size: 32px;
-      font-weight: 700;
-      color: #E31E24;
-      margin-bottom: 8px;
-    }
-    .benefit-label {
-      font-size: 14px;
-      color: #6B7280;
-    }
-    
-    /* Contenu texte */
-    .text-content h2 {
-      font-size: 24px;
-      color: #111827;
-      margin: 32px 0 16px 0;
-      font-weight: 600;
-    }
-    .text-content h3 {
-      font-size: 18px;
-      color: #374151;
-      margin: 24px 0 12px 0;
-      font-weight: 600;
-    }
-    .text-content h4 {
-      font-size: 16px;
-      color: #4B5563;
-      margin: 20px 0 10px 0;
-      font-weight: 600;
-    }
-    .text-content p {
-      margin: 12px 0;
-      color: #4B5563;
-      line-height: 1.8;
-    }
-    .text-content ul, .text-content ol {
-      margin: 12px 0;
-      padding-left: 24px;
-    }
-    .text-content li {
-      margin: 8px 0;
-      color: #4B5563;
-    }
-    .text-content strong {
-      color: #111827;
-      font-weight: 600;
-    }
-    
-    /* Footer */
-    .footer {
-      background: #1F2937;
-      color: white;
-      padding: 40px;
-      text-align: center;
-      margin-top: 60px;
-    }
-    .footer p {
-      margin: 8px 0;
-      opacity: 0.8;
-    }
-    .footer .contact {
-      margin-top: 20px;
-      font-size: 14px;
-    }
-    
-    /* Impression */
-    @media print {
-      .page { box-shadow: none; }
-      .cover-page { page-break-after: always; }
-      .content-section { page-break-inside: avoid; }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    <!-- Page de couverture -->
-    <div class="cover-page">
-      <div class="logo">⚡ IMOTION</div>
-      <h1>Rapport d'Audit Digital<br>et de Transformation Numérique</h1>
-      <div class="subtitle">Analyse & Recommandations Personnalisées</div>
-      
-      <div class="client-info">
-        <p><strong>Entreprise:</strong> ${audit.audited_companies?.name || 'Non spécifié'}</p>
-        <p><strong>Secteur d'activité:</strong> ${audit.audited_companies?.sector || 'Non spécifié'}</p>
-        ${audit.audited_companies?.contact_name ? `<p><strong>Contact:</strong> ${audit.audited_companies.contact_name}</p>` : ''}
-      </div>
-      
-      <div class="date">
-        **Date:** ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}<br>
-        **Audit Réalisé par:** IMOTION - Expert en Audit Digital & Intégration Apple/IA
-      </div>
-    </div>
-    
-    <!-- Score global -->
-    <div class="score-banner">
-      <div class="score-value">${Math.round(averageScore * 100)}%</div>
-      <div class="score-label">Score de Maturité Digitale</div>
-    </div>
-    
-    <!-- Scores par secteur -->
-    <div class="content-section">
-      <div class="section-header">
-        <h2 class="section-title">Analyse par Secteur</h2>
-        <p class="section-subtitle">Évaluation détaillée de votre maturité digitale</p>
-      </div>
-      
-      <div class="sector-grid">
-        ${sectorScores.map(s => `
-          <div class="sector-card">
-            <h3>${s.name}</h3>
-            <div class="sector-score">${s.percentage}%</div>
-            <div class="sector-bar">
-              <div class="sector-bar-fill" style="width: ${s.percentage}%"></div>
-            </div>
-            <p style="margin-top: 8px; font-size: 14px; color: #6B7280;">${s.score} / ${s.maxScore} points</p>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-    
-    <!-- Contenu principal du rapport IA -->
-    <div class="content-section text-content">
-      ${formattedContent}
-    </div>
-    
-    <!-- Footer -->
-    <div class="footer">
-      <p><strong>© ${new Date().getFullYear()} IMOTION</strong></p>
-      <p>Intégrateur Apple & Solutions IA · Expert en Transformation Digitale</p>
-      <div class="contact">
-        <p>📧 contact@imotion.tech · 📱 +33 (0)X XX XX XX XX</p>
-        <p>📍 Pyrénées Catalanes, France</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-    `;
-
-    // Stocker le rapport HTML directement dans la base de données
+    // 11) Save to database
     const { error: updateError } = await supabase
       .from("audits")
       .update({ 
         generated_report: html,
-        report_generated_at: new Date().toISOString(),
-        status: "completed",
-        global_score: Math.round(averageScore * 100),
-        updated_at: new Date().toISOString()
+        global_score: weightedScore 
       })
-      .eq("id", audit_id);
+      .eq("id", auditId);
 
     if (updateError) {
-      console.error("Update error:", updateError);
-      throw updateError;
+      console.error("[generate-audit-report] Error saving report:", updateError.message);
+    } else {
+      console.log("[generate-audit-report] Report saved successfully");
     }
 
-    // Logger l'action
-    await supabase.from("workflow_logs").insert({
-      entity_type: "audit",
-      entity_id: audit_id,
-      action: "AUDIT_REPORT_GENERATED",
-      details: { score: Math.round(averageScore * 100) },
-      performed_by: audit.created_by
+    return new Response(html, {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
-
-    console.log("Audit report generated successfully");
-
+  } catch (e: any) {
+    console.error("[generate-audit-report] Error:", e.message, e.stack);
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        report: html,
-        audit_id: audit_id,
-        score: Math.round(averageScore * 100)
-      }), 
-      { 
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-
-  } catch (err) {
-    const error = err as Error;
-    console.error("Error in generate-audit-report:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }), 
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ error: e?.message || "Unexpected error", stack: e?.stack }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+
+// ---------- HTML Renderer
+function renderReportHTML({
+  brand,
+  meta,
+  recap,
+  improvements,
+  roadmap,
+}: {
+  brand: typeof BRAND;
+  meta: {
+    reference: string;
+    date: string;
+    client: string;
+    company: string;
+    email: string;
+    weightedScore: string;
+    tagline: string;
+  };
+  recap: any[];
+  improvements: any[];
+  roadmap: { phases: any[]; gantt: any[]; effort_table: any[] };
+}) {
+  const css = `
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system; color:${brand.dark}; background:#fff; margin:0; padding:0; }
+    .wrap { max-width: 860px; margin: 24px auto; padding: 16px 24px 48px; }
+    .header { display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2px solid ${brand.color}; padding-bottom:16px; margin-bottom:24px; }
+    .brand { display:flex; gap:12px; align-items:center; }
+    .brand img { height:50px; }
+    .brand-text { font-size:24px; font-weight:700; color:${brand.color}; }
+    .brand-subtitle { font-size:12px; color:${brand.gray}; margin-top:2px; }
+    .meta { text-align:right; font-size:12px; color:${brand.gray}; line-height:1.6; }
+    .meta div { margin-bottom:4px; }
+    .meta b { color:${brand.dark}; font-weight:600; }
+    h1 { font-size:28px; margin:24px 0 8px; color:${brand.dark}; }
+    .tagline { color:${brand.gray}; margin-bottom:20px; font-size:15px; }
+    .badge { display:inline-block; background:${brand.light}; border:1px solid #e5e7eb; padding:4px 10px; border-radius:6px; font-size:12px; margin:2px; }
+    .kpi { background:#F8FAFC; border:1px solid #E5E7EB; border-left:4px solid ${brand.color}; padding:16px; margin:16px 0; border-radius:10px; }
+    .kpi b { color:${brand.dark}; }
+    .section { margin-top:32px; }
+    .section h2 { font-size:22px; margin:0 0 12px; padding-top:12px; border-top:3px solid ${brand.color}; color:${brand.dark}; }
+    .table { width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; }
+    .table th, .table td { border:1px solid #e5e7eb; padding:10px; text-align:left; }
+    .table th { background:#F8FAFC; font-weight:600; color:${brand.dark}; }
+    .table tbody tr:hover { background:#fafafa; }
+    .table ul { margin:4px 0; padding-left:20px; }
+    .table li { margin:4px 0; }
+    .flex-container { display:flex; gap:24px; margin-top:12px; flex-wrap:wrap; }
+    .flex-item { flex:1; min-width:200px; }
+    .flex-item-title { font-weight:600; margin-bottom:6px; color:${brand.dark}; font-size:14px; }
+    .flex-item ul { margin:4px 0; padding-left:20px; font-size:13px; }
+    .flex-item li { margin:6px 0; line-height:1.5; }
+    .gantt-json { background:#f1f5f9; border:1px solid #cbd5e1; padding:12px; border-radius:8px; margin:12px 0; }
+    .gantt-json pre { margin:0; white-space:pre-wrap; word-wrap:break-word; font-size:12px; font-family:monospace; }
+    .foot { margin-top:48px; padding-top:24px; border-top:1px solid #e5e7eb; font-size:12px; color:${brand.gray}; text-align:center; }
+    @media print {
+      .wrap { margin:0; padding:20px; }
+      .kpi { page-break-inside:avoid; }
+    }
+  `;
+
+  const recapTable = `
+    <table class="table">
+      <thead><tr><th>Secteur</th><th>Pondération</th><th>Maturité</th><th>Détails (échantillon)</th></tr></thead>
+      <tbody>
+        ${recap
+          .map(
+            (r: any) => `
+          <tr>
+            <td><b>${escapeHtml(r.sector)}</b></td>
+            <td>${r.weighting}%</td>
+            <td><span class="badge">${r.maturity_pct}%</span></td>
+            <td>
+              <ul style="margin:0;padding-left:18px">
+                ${r.items
+                  .slice(0, 5)
+                  .map(
+                    (i: any) =>
+                      `<li><b>${escapeHtml(i.question)}</b> — ${escapeHtml(String(i.response ?? "—"))} <span class="badge">${i.score}/20</span></li>`
+                  )
+                  .join("")}
+                ${r.items.length > 5 ? `<li>… ${r.items.length - 5} autres questions</li>` : ""}
+              </ul>
+            </td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+
+  const improvBlocks = improvements
+    .map(
+      (i: any) => `
+    <div class="kpi">
+      <b style="font-size:16px">${escapeHtml(i.sector)}</b>
+      <div class="flex-container">
+        <div class="flex-item">
+          <div class="flex-item-title">🚀 Quick wins (≤4 semaines)</div>
+          <ul>${(i.quick_wins || []).map((q: string) => `<li>${escapeHtml(q)}</li>`).join("")}</ul>
+        </div>
+        <div class="flex-item">
+          <div class="flex-item-title">🏗️ Chantiers (2–6 mois)</div>
+          <ul>${(i.projects || []).map((q: string) => `<li>${escapeHtml(q)}</li>`).join("")}</ul>
+        </div>
+        <div class="flex-item">
+          <div class="flex-item-title">📈 Gains attendus (prudence)</div>
+          <ul>
+            ${gainLine("Temps admin", i.estimated_gains?.admin_time)}
+            ${gainLine("Erreurs de saisie", i.estimated_gains?.input_errors)}
+            ${gainLine("Ruptures de stock", i.estimated_gains?.stockouts)}
+            ${gainLine("DSO (encours clients)", i.estimated_gains?.dso)}
+            ${gainLine("Trafic", i.estimated_gains?.traffic)}
+            ${gainLine("Conversion", i.estimated_gains?.conversion)}
+          </ul>
+        </div>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  const phases = (roadmap.phases || [])
+    .map(
+      (p: any) => `
+    <div class="kpi">
+      <b style="font-size:16px">${escapeHtml(p.name)}</b> — ${p.weeks ?? "?"} semaines
+      <div class="flex-container">
+        <div class="flex-item">
+          <div class="flex-item-title">📦 Livrables</div>
+          <ul>${(p.deliverables || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
+        </div>
+        <div class="flex-item">
+          <div class="flex-item-title">✅ Critères de succès</div>
+          <ul>${(p.success_criteria || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
+        </div>
+        ${
+          p.risks?.length
+            ? `<div class="flex-item">
+          <div class="flex-item-title">⚠️ Risques</div>
+          <ul>${p.risks.map((r: string) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
+        </div>`
+            : ""
+        }
+        ${
+          p.mitigations?.length
+            ? `<div class="flex-item">
+          <div class="flex-item-title">🛡️ Mitigations</div>
+          <ul>${p.mitigations.map((r: string) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
+        </div>`
+            : ""
+        }
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  const ganttJson = JSON.stringify(roadmap.gantt ?? [], null, 2);
+  const effortTable =
+    roadmap.effort_table && roadmap.effort_table.length > 0
+      ? `
+    <table class="table" style="max-width:500px">
+      <thead><tr><th>Chantier</th><th>Effort (semaines)</th></tr></thead>
+      <tbody>
+        ${roadmap.effort_table.map((e: any) => `<tr><td>${escapeHtml(e.workstream)}</td><td>${e.effort_weeks}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `
+      : "";
+
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Rapport d'audit – ${escapeHtml(meta.client)}</title>
+<style>${css}</style></head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <img src="${brand.logoUrl}" alt="${brand.name}" onerror="this.style.display='none'">
+        <div>
+          <div class="brand-text">${brand.name}</div>
+          <div class="brand-subtitle">Apple • Automatisation • IA</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div><b>Référence</b> ${escapeHtml(meta.reference)}</div>
+        <div><b>Date</b> ${escapeHtml(meta.date)}</div>
+        <div><b>Client</b> ${escapeHtml(meta.client)}</div>
+        <div><b>Société</b> ${escapeHtml(meta.company)}</div>
+        <div><b>Email</b> ${escapeHtml(meta.email)}</div>
+      </div>
+    </div>
+
+    <h1>Rapport d'audit & Plan d'accompagnement</h1>
+    <div class="tagline">${escapeHtml(meta.tagline)}</div>
+    <div class="kpi"><b>Score global pondéré :</b> ${escapeHtml(meta.weightedScore)}</div>
+
+    <div class="section">
+      <h2>1. Rappel détaillé des réponses (par secteur)</h2>
+      ${recapTable}
+    </div>
+
+    <div class="section">
+      <h2>2. Axes d'amélioration priorisés et gains attendus</h2>
+      ${improvBlocks || '<div class="kpi">Aucune amélioration identifiée.</div>'}
+    </div>
+
+    <div class="section">
+      <h2>3. Projet d'accompagnement (phases, jalons, Gantt)</h2>
+      ${phases || '<div class="kpi">Phases à préciser en atelier de cadrage.</div>'}
+      
+      ${effortTable}
+      
+      <div class="kpi">
+        <b>Gantt JSON (intégration ProjectGantt)</b>
+        <div class="gantt-json"><pre>${escapeHtml(ganttJson)}</pre></div>
+      </div>
+    </div>
+
+    <div class="foot">© ${new Date().getFullYear()} ${brand.name}. Document confidentiel — Ne pas diffuser.</div>
+  </div>
+</body></html>`;
+}
+
+function gainLine(label: string, v?: { min: number; max: number }) {
+  if (!v || (v.min === 0 && v.max === 0)) return "";
+  return `<li>${label} : <b>${v.min}% → ${v.max}%</b></li>`;
+}
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]!));
+}
