@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { lazy, Suspense } from "react";
 import Services from "@/components/Services";
-import SolutionsIAPreview from "@/components/SolutionsIAPreview";
-import ZoneIntervention from "@/components/ZoneIntervention";
-import ContactDiagnostic from "@/components/ContactDiagnostic";
+
+// Lazy load non-critical components
+const SolutionsIAPreview = lazy(() => import("@/components/SolutionsIAPreview"));
+const ZoneIntervention = lazy(() => import("@/components/ZoneIntervention"));
+const ContactDiagnostic = lazy(() => import("@/components/ContactDiagnostic"));
 
 const Index = () => {
   return (
@@ -44,15 +47,26 @@ const Index = () => {
           </article>
 
           <figure className="rounded-2xl overflow-hidden shadow-card border border-surface-border bg-white">
-            <img src="/hero-imotion.jpg" alt="Technicien Apple et IA en action" loading="lazy" className="w-full h-auto" />
+            <img 
+              src="/hero-imotion.jpg" 
+              alt="Technicien Apple et IA en action" 
+              fetchPriority="high"
+              decoding="async"
+              width={600}
+              height={400}
+              className="w-full h-auto" 
+            />
             <figcaption className="sr-only">Expertise IMOTION – allier technologie et intelligence</figcaption>
           </figure>
         </section>
 
         <Services />
-        <SolutionsIAPreview />
-        <ZoneIntervention />
-        <ContactDiagnostic />
+        
+        <Suspense fallback={<div className="h-96" />}>
+          <SolutionsIAPreview />
+          <ZoneIntervention />
+          <ContactDiagnostic />
+        </Suspense>
       </main>
     </div>
   );

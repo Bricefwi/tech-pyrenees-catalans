@@ -20,6 +20,10 @@ const Hero = () => {
         <img 
           src={heroImage} 
           alt="Pays Catalan" 
+          fetchPriority="high"
+          decoding="async"
+          width={1920}
+          height={1080}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-hero"></div>
