@@ -7,9 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Shield, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Shield } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import {
+  loginFormSchema,
+  signupFormSchema,
+  resetPasswordSchema,
+  calculatePasswordStrength,
+  sanitizeForLogging,
+  type LoginFormData,
+  type SignupFormData,
+  type ResetPasswordData,
+} from "@/lib/authValidation";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -32,32 +42,16 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState("");
   
   // Password strength state
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, message: "" });
+  const [passwordStrength, setPasswordStrength] = useState({ 
+    score: 0, 
+    message: "", 
+    color: "destructive" as "destructive" | "yellow" | "green" 
+  });
 
   // Validate password strength
   const validatePassword = (password: string) => {
-    let score = 0;
-    let message = "";
-    
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-    if (/\d/.test(password)) score++;
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-    
-    if (score < 2) message = "Très faible - Ajoutez des caractères variés";
-    else if (score < 3) message = "Faible - Ajoutez des majuscules et chiffres";
-    else if (score < 4) message = "Moyen - Ajoutez des caractères spéciaux";
-    else if (score < 5) message = "Bon - Presque parfait";
-    else message = "Excellent - Mot de passe très sécurisé";
-    
-    setPasswordStrength({ score, message });
-  };
-
-  // Validate email format
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    const strength = calculatePasswordStrength(password);
+    setPasswordStrength(strength);
   };
 
   // Social auth handler
@@ -86,23 +80,19 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate email
-    if (!validateEmail(loginEmail)) {
-      toast({
-        title: "Email invalide",
-        description: "Veuillez entrer une adresse email valide",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Validate with zod schema
+      const validatedData = loginFormSchema.parse({
         email: loginEmail,
         password: loginPassword,
+      });
+
+      console.log("Login attempt:", sanitizeForLogging({ email: validatedData.email }));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validatedData.email,
+        password: validatedData.password,
       });
 
       if (error) throw error;
@@ -137,9 +127,27 @@ const Auth = () => {
         navigate("/client-dashboard");
       }
     } catch (error: any) {
+      console.error("Login error:", sanitizeForLogging({ error: error.message }));
+      
+      let errorMessage = "Une erreur est survenue lors de la connexion";
+      
+      // Handle zod validation errors
+      if (error.errors) {
+        errorMessage = error.errors[0]?.message || errorMessage;
+      } else if (error.message) {
+        // Provide user-friendly messages for common Supabase errors
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Email ou mot de passe incorrect";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Veuillez confirmer votre email avant de vous connecter";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Erreur de connexion",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -149,40 +157,31 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate email
-    if (!validateEmail(signupEmail)) {
-      toast({
-        title: "Email invalide",
-        description: "Veuillez entrer une adresse email valide",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check password strength
-    if (passwordStrength.score < 3) {
-      toast({
-        title: "Mot de passe trop faible",
-        description: "Votre mot de passe doit contenir au moins 8 caractères, avec majuscules, minuscules et chiffres",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsLoading(true);
 
     try {
+      // Validate with zod schema
+      const validatedData = signupFormSchema.parse({
+        email: signupEmail,
+        password: signupPassword,
+        name: signupName,
+        phone: signupPhone || undefined,
+      });
+
+      console.log("Signup attempt:", sanitizeForLogging({ 
+        email: validatedData.email, 
+        name: validatedData.name 
+      }));
       const redirectUrl = `${window.location.origin}/profile-completion`;
       
       const { data, error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
+        email: validatedData.email,
+        password: validatedData.password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: signupName,
-            phone: signupPhone,
+            full_name: validatedData.name,
+            phone: validatedData.phone || null,
           },
         },
       });
@@ -195,9 +194,9 @@ const Auth = () => {
           .from("profiles")
           .insert({
             user_id: data.user.id,
-            full_name: signupName,
-            email: signupEmail,
-            phone: signupPhone,
+            full_name: validatedData.name,
+            email: validatedData.email,
+            phone: validatedData.phone || null,
           });
 
         if (profileError) throw profileError;
@@ -223,9 +222,27 @@ const Auth = () => {
         }, 500);
       }
     } catch (error: any) {
+      console.error("Signup error:", sanitizeForLogging({ error: error.message }));
+      
+      let errorMessage = "Une erreur est survenue lors de l'inscription";
+      
+      // Handle zod validation errors
+      if (error.errors) {
+        errorMessage = error.errors[0]?.message || errorMessage;
+      } else if (error.message) {
+        // Provide user-friendly messages for common Supabase errors
+        if (error.message.includes("User already registered")) {
+          errorMessage = "Un compte existe déjà avec cet email";
+        } else if (error.message.includes("Password should be")) {
+          errorMessage = "Le mot de passe ne respecte pas les critères de sécurité";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Erreur d'inscription",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -238,9 +255,16 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      // Validate with zod schema
+      const validatedData = resetPasswordSchema.parse({
+        email: resetEmail,
+      });
+
+      console.log("Password reset request:", sanitizeForLogging({ email: validatedData.email }));
+
       const redirectUrl = `${window.location.origin}/auth`;
       
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(validatedData.email, {
         redirectTo: redirectUrl,
       });
 
@@ -254,9 +278,20 @@ const Auth = () => {
       setShowResetPassword(false);
       setResetEmail("");
     } catch (error: any) {
+      console.error("Password reset error:", sanitizeForLogging({ error: error.message }));
+      
+      let errorMessage = "Une erreur est survenue lors de la réinitialisation";
+      
+      // Handle zod validation errors
+      if (error.errors) {
+        errorMessage = error.errors[0]?.message || errorMessage;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erreur",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -489,9 +524,9 @@ const Auth = () => {
                               key={level}
                               className={`h-1 flex-1 rounded-full transition-colors ${
                                 level <= passwordStrength.score
-                                  ? passwordStrength.score < 3
+                                  ? passwordStrength.color === "destructive"
                                     ? "bg-destructive"
-                                    : passwordStrength.score < 4
+                                    : passwordStrength.color === "yellow"
                                     ? "bg-yellow-500"
                                     : "bg-green-500"
                                   : "bg-muted"
@@ -500,9 +535,9 @@ const Auth = () => {
                           ))}
                         </div>
                         <p className={`text-xs ${
-                          passwordStrength.score < 3
+                          passwordStrength.color === "destructive"
                             ? "text-destructive"
-                            : passwordStrength.score < 4
+                            : passwordStrength.color === "yellow"
                             ? "text-yellow-600 dark:text-yellow-500"
                             : "text-green-600 dark:text-green-500"
                         }`}>
