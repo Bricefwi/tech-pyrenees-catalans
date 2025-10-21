@@ -1,7 +1,5 @@
 import { Helmet } from "react-helmet-async";
 import SeoSchema from "@/components/SeoSchema";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/Footer";
 import FAQComponent from "@/components/FAQ";
 import ChatAssistant from "@/components/ChatAssistant";
 
@@ -22,12 +20,8 @@ const FAQPage = () => {
         serviceType="Support client"
       />
 
-      <Header />
-      <main className="flex-1">
-        <FAQComponent />
-        <ChatAssistant />
-      </main>
-      <Footer />
+      <FAQComponent />
+      <ChatAssistant />
     </div>
   );
 };
