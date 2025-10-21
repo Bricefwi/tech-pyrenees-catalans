@@ -16,15 +16,29 @@ export default function AdminQuotes() {
         .from("quotes")
         .select(`
           *,
-          service_requests!inner(
-            client_user_id,
-            profiles!service_requests_client_user_id_fkey(full_name, email)
-          )
+          service_requests(client_user_id, title)
         `)
         .order("created_at", { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error loading quotes:", error);
+        throw error;
+      }
+      
+      // Manually join with profiles via service_requests.client_user_id
+      const quotesWithProfiles = await Promise.all((data || []).map(async (quote: any) => {
+        if (!quote.service_requests?.client_user_id) return quote;
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('user_id', quote.service_requests.client_user_id)
+          .single();
+        
+        return { ...quote, client_profile: profile };
+      }));
+      
+      return quotesWithProfiles;
     },
   });
 
@@ -133,9 +147,9 @@ export default function AdminQuotes() {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <div>{quote.service_requests?.profiles?.full_name || "—"}</div>
-                  {quote.service_requests?.profiles?.email && (
-                    <div className="text-sm text-text-muted">{quote.service_requests.profiles.email}</div>
+                  <div>{quote.client_profile?.full_name || "—"}</div>
+                  {quote.client_profile?.email && (
+                    <div className="text-sm text-text-muted">{quote.client_profile.email}</div>
                   )}
                 </td>
                 <td className="px-6 py-4 font-semibold">

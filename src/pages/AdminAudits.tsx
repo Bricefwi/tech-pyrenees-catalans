@@ -17,13 +17,29 @@ export default function AdminAudits() {
         .from("audits")
         .select(`
           *,
-          profiles!audits_created_by_fkey(full_name, email),
           companies(name)
         `)
         .order("created_at", { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error loading audits:", error);
+        throw error;
+      }
+      
+      // Manually join with profiles via created_by
+      const auditsWithProfiles = await Promise.all((data || []).map(async (audit) => {
+        if (!audit.created_by) return { ...audit, creator: null };
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('user_id', audit.created_by)
+          .maybeSingle();
+        
+        return { ...audit, creator: profile };
+      }));
+      
+      return auditsWithProfiles;
     },
   });
 
@@ -95,7 +111,7 @@ export default function AdminAudits() {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <div>{audit.profiles?.full_name || "—"}</div>
+                  <div>{audit.creator?.full_name || "—"}</div>
                   {audit.companies?.name && (
                     <div className="text-sm text-text-muted">{audit.companies.name}</div>
                   )}
