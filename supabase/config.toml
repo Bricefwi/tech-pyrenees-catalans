@@ -1,43 +1,45 @@
 project_id = "nmlkqyhkygdajqaffzny"
 
+# Public-facing functions - keep JWT disabled but with rate limiting in code
 [functions.diagnostic-chat]
-verify_jwt = false
-
-[functions.generate-audit-report]
-verify_jwt = false
-
-[functions.generate-quote-pdf]
-verify_jwt = false
-
-[functions.workflow-hook]
-verify_jwt = false
-
-[functions.send-email]
-verify_jwt = false
-
-[functions.send-proposal-email]
-verify_jwt = false
-
-[functions.generate-specifications]
-verify_jwt = false
-
-[functions.generate-admin-proposals]
 verify_jwt = false
 
 [functions.chat-faq]
 verify_jwt = false
 
-[functions.generate-preReception-report]
+[functions.log-ia-event]
 verify_jwt = false
+
+# Protected admin/business functions - require authentication
+[functions.generate-audit-report]
+verify_jwt = true
+
+[functions.generate-quote-pdf]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.send-proposal-email]
+verify_jwt = true
+
+[functions.generate-specifications]
+verify_jwt = true
+
+[functions.generate-admin-proposals]
+verify_jwt = true
+
+[functions.generate-preReception-report]
+verify_jwt = true
 
 [functions.generate-demo-audit-json]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-ia-solutions]
-verify_jwt = false
+verify_jwt = true
 
 [functions.auto-marketing-agent]
-verify_jwt = false
+verify_jwt = true
 
-[functions.log-ia-event]
+[functions.workflow-hook]
 verify_jwt = false

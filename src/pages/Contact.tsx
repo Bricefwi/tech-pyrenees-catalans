@@ -8,6 +8,14 @@ import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 import SeoSchema from "@/components/SeoSchema";
 import Header from "@/components/layout/Header";
+import { z } from "zod";
+
+const contactSchema = z.object({
+  name: z.string().trim().min(1, "Le nom est requis").max(100, "Le nom est trop long (max 100 caractères)"),
+  email: z.string().trim().email("Email invalide").max(255, "L'email est trop long"),
+  phone: z.string().regex(/^[+\d\s()-]{0,20}$/, "Format de téléphone invalide").optional().or(z.literal("")),
+  message: z.string().trim().min(10, "Le message doit contenir au moins 10 caractères").max(1000, "Le message est trop long (max 1000 caractères)")
+});
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -20,11 +28,28 @@ const Contact = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const whatsappMessage = `Bonjour, je suis ${formData.name}. ${formData.message}`;
-    const whatsappUrl = `https://wa.me/33643251289?text=${encodeURIComponent(whatsappMessage)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    toast.success("Redirection vers WhatsApp...");
+    // Validate input with Zod schema
+    try {
+      const validated = contactSchema.parse(formData);
+      
+      // Sanitize inputs to prevent injection attacks
+      const safeName = validated.name.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+      const safeMessage = validated.message.replace(/[<>]/g, '');
+      
+      // Construct WhatsApp URL with sanitized data
+      const whatsappMessage = `Bonjour, je suis ${safeName}. ${safeMessage}`;
+      const whatsappUrl = `https://wa.me/33643251289?text=${encodeURIComponent(whatsappMessage)}`;
+      
+      window.open(whatsappUrl, '_blank');
+      toast.success("Redirection vers WhatsApp...");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.issues[0];
+        toast.error(firstError.message);
+      } else {
+        toast.error("Une erreur s'est produite");
+      }
+    }
   };
 
   const contactInfo = [
