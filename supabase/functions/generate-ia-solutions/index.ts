@@ -28,13 +28,29 @@ Deno.serve(async (req) => {
 
     const prompt = `
 Tu es un expert en stratégie commerciale B2B et communication visuelle.
-Rédige un article court (300-500 mots) sur le thème : "${theme}".
-Structure : introduction, 3 idées clés avec chiffres, conclusion action.
-Style : professionnel, clair, orienté business, sans jargon technique.
-Langue : Français.
+Rédige un article court et vendeur (400-600 mots) sur le thème : "${theme}".
 
-Fournis aussi un highlight court (une phrase percutante avec des chiffres) qui résume le bénéfice principal.
-Format JSON : {"content": "le contenu de l'article", "highlight": "le highlight"}
+Structure requise :
+- Introduction accrocheuse (2-3 phrases)
+- Corps de l'article avec 3-4 bénéfices concrets
+- Ton pédagogique et vendeur, orienté résultats business
+- Style : professionnel mais accessible, sans jargon technique
+- Langue : Français
+
+Fournis aussi :
+- Un highlight (une phrase percutante avec des chiffres clés)
+- 3 points clés avec des emojis pertinents et des bénéfices mesurables
+
+Format JSON :
+{
+  "content": "le contenu complet de l'article",
+  "highlight": "phrase percutante avec chiffres",
+  "key_points": [
+    {"icon": "emoji", "text": "bénéfice mesurable"},
+    {"icon": "emoji", "text": "bénéfice mesurable"},
+    {"icon": "emoji", "text": "bénéfice mesurable"}
+  ]
+}
 `;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -72,10 +88,12 @@ Format JSON : {"content": "le contenu de l'article", "highlight": "le highlight"
       .from("ia_solutions")
       .insert({
         title: theme,
-        description: result.content.slice(0, 450) + "...",
+        description: result.content.slice(0, 250) + "...",
+        full_content: result.content,
         highlight: result.highlight || "Solution IA générée automatiquement",
+        key_points: result.key_points || [],
         image_url: napkinImageUrl,
-        napkin_url: "https://www.napkin.ai",
+        cta_text: "Demander un Audit",
       })
       .select()
       .single();

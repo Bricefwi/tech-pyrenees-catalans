@@ -713,33 +713,39 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          cta_text: string | null
           description: string
+          full_content: string | null
           highlight: string | null
           id: string
           image_url: string | null
-          napkin_url: string | null
+          key_points: Json | null
           title: string
           updated_at: string | null
         }
         Insert: {
           color?: string | null
           created_at?: string | null
+          cta_text?: string | null
           description: string
+          full_content?: string | null
           highlight?: string | null
           id?: string
           image_url?: string | null
-          napkin_url?: string | null
+          key_points?: Json | null
           title: string
           updated_at?: string | null
         }
         Update: {
           color?: string | null
           created_at?: string | null
+          cta_text?: string | null
           description?: string
+          full_content?: string | null
           highlight?: string | null
           id?: string
           image_url?: string | null
-          napkin_url?: string | null
+          key_points?: Json | null
           title?: string
           updated_at?: string | null
         }

@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
+
+interface KeyPoint {
+  icon: string;
+  text: string;
+}
 
 interface Solution {
   id: string;
@@ -11,7 +16,9 @@ interface Solution {
   description: string;
   highlight: string;
   image_url: string;
-  napkin_url: string;
+  full_content: string;
+  key_points: KeyPoint[];
+  cta_text: string;
 }
 
 export default function SolutionsIA() {
@@ -38,7 +45,15 @@ export default function SolutionsIA() {
 
         if (error) throw error;
 
-        setSolutions(data || []);
+        // Parse key_points from JSON to array
+        const parsedData = data?.map(sol => ({
+          ...sol,
+          key_points: (sol.key_points && Array.isArray(sol.key_points) 
+            ? sol.key_points as unknown as KeyPoint[]
+            : [] as KeyPoint[])
+        })) as Solution[] || [];
+
+        setSolutions(parsedData);
         
         // Log view events for all solutions
         data?.forEach((sol) => logEvent(sol.id, "view"));
@@ -82,46 +97,61 @@ export default function SolutionsIA() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+          <div className="space-y-16 mb-12">
             {solutions.map((sol, i) => (
               <Card
                 key={sol.id}
-                className="overflow-hidden rounded-2xl shadow-sm hover:shadow-lg transition border-0 bg-card"
+                className="overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all border-0 bg-card"
               >
-                <img 
-                  src={sol.image_url} 
-                  alt={sol.title} 
-                  className="h-56 w-full object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop';
-                  }}
-                />
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-2 text-foreground">{sol.title}</h2>
-                  <p className="text-muted-foreground mb-4 leading-relaxed">{sol.description}</p>
-                  <div className="text-sm bg-primary/10 border border-primary/20 text-primary inline-block px-3 py-1 rounded-full mb-4">
-                    💡 {sol.highlight}
+                <div className="grid md:grid-cols-2 gap-0">
+                  <div className="relative h-64 md:h-auto">
+                    <img 
+                      src={sol.image_url} 
+                      alt={sol.title} 
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop';
+                      }}
+                    />
                   </div>
-                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mt-4">
+                  <CardContent className="p-8 flex flex-col justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-3 text-foreground">{sol.title}</h2>
+                      <div className="text-sm bg-primary/10 border border-primary/20 text-primary inline-block px-3 py-2 rounded-full mb-4 font-medium">
+                        💡 {sol.highlight}
+                      </div>
+                      <p className="text-muted-foreground mb-6 leading-relaxed">
+                        {sol.full_content || sol.description}
+                      </p>
+                      
+                      {sol.key_points && sol.key_points.length > 0 && (
+                        <div className="mb-6 space-y-3">
+                          <h3 className="font-semibold text-foreground mb-3">Points clés :</h3>
+                          {sol.key_points.map((point, idx) => (
+                            <div key={idx} className="flex items-start gap-3">
+                              <span className="text-2xl flex-shrink-0">{point.icon}</span>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {point.text}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
                     <Button
-                      variant="outline"
-                      className="text-primary border-primary hover:bg-primary hover:text-primary-foreground transition flex-1"
+                      size="lg"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 w-full mt-4"
                       onClick={() => {
                         logEvent(sol.id, "click");
-                        window.open(sol.napkin_url, "_blank");
+                        window.location.href = "/contact";
                       }}
                     >
-                      Visualiser sur Napkin.ai
+                      {sol.cta_text || "Demander un Audit"}
                     </Button>
-                    <Button
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
-                      onClick={() => (window.location.href = "/contact")}
-                    >
-                      Demander un Audit
-                    </Button>
-                  </div>
-                </CardContent>
+                  </CardContent>
+                </div>
               </Card>
             ))}
           </div>
