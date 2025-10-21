@@ -62,6 +62,14 @@ serve(async (req) => {
       );
     }
 
+    // Validate question length (max 1000 characters)
+    if (typeof question !== 'string' || question.length > 1000) {
+      return new Response(
+        JSON.stringify({ error: 'La question doit faire moins de 1000 caractères' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
