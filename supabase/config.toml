@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.generate-demo-audit-json]
 verify_jwt = false
+
+[functions.generate-ia-solutions]
+verify_jwt = false
+
+[functions.auto-marketing-agent]
+verify_jwt = false
+
+[functions.log-ia-event]
+verify_jwt = false

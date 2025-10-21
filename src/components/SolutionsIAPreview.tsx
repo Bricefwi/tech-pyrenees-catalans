@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 interface Solution {
   id: string;
   title: string;
-  benefit: string;
+  highlight: string;
 }
 
 export default function SolutionsIAPreview() {
@@ -21,7 +21,7 @@ export default function SolutionsIAPreview() {
       try {
         const { data, error } = await supabase
           .from("ia_solutions")
-          .select("id, title, benefit")
+          .select("id, title, highlight")
           .order("created_at", { ascending: false })
           .limit(3);
 
@@ -86,10 +86,10 @@ export default function SolutionsIAPreview() {
                       <h3 className="font-semibold text-lg mb-3 line-clamp-2">
                         {solution.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-xl flex-shrink-0">💡</span>
-                        <span className="line-clamp-2">{solution.benefit}</span>
-                      </p>
+                <p className="text-sm text-muted-foreground flex items-start gap-2">
+                  <span className="text-xl flex-shrink-0">💡</span>
+                  <span className="line-clamp-2">{solution.highlight}</span>
+                </p>
                     </CardContent>
                   </Card>
                 </motion.div>

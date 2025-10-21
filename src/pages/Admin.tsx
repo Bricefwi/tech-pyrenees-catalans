@@ -98,6 +98,13 @@ export default function Admin() {
             <div className="font-semibold text-sm">📊 IA Analytics</div>
             <div className="text-xs text-gray-500 mt-1">Performance contenus IA</div>
           </button>
+          <button
+            onClick={() => navigate("/admin/marketing-agent")}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="font-semibold text-sm">🧠 Agent Marketing</div>
+            <div className="text-xs text-gray-500 mt-1">Génération auto IA</div>
+          </button>
         </div>
 
         <button

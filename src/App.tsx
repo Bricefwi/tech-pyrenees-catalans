@@ -41,6 +41,7 @@ import ClientRequestChat from "./pages/ClientRequestChat";
 import AdminCommunicationPreview from "./pages/AdminCommunicationPreview";
 import SolutionsIA from "./pages/SolutionsIA";
 import AdminIAAnalytics from "./pages/AdminIAAnalytics";
+import AdminMarketingAgent from "./pages/AdminMarketingAgent";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 
@@ -98,7 +99,8 @@ const App = () => (
               <Route path="/tests" element={<TestRunner />} />
               <Route path="/admin/communication-aperçu" element={<AdminCommunicationPreview />} />
               <Route path="/solutions-ia" element={<SolutionsIA />} />
-              <Route path="/admin/ia-analytics" element={<AdminIAAnalytics />} />
+            <Route path="/admin/ia-analytics" element={<AdminIAAnalytics />} />
+            <Route path="/admin/marketing-agent" element={<AdminMarketingAgent />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

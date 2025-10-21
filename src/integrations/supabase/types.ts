@@ -711,34 +711,37 @@ export type Database = {
       }
       ia_solutions: {
         Row: {
-          benefit: string
           color: string | null
           created_at: string | null
           description: string
+          highlight: string | null
           id: string
+          image_url: string | null
+          napkin_url: string | null
           title: string
           updated_at: string | null
-          visual: string
         }
         Insert: {
-          benefit: string
           color?: string | null
           created_at?: string | null
           description: string
+          highlight?: string | null
           id?: string
+          image_url?: string | null
+          napkin_url?: string | null
           title: string
           updated_at?: string | null
-          visual: string
         }
         Update: {
-          benefit?: string
           color?: string | null
           created_at?: string | null
           description?: string
+          highlight?: string | null
           id?: string
+          image_url?: string | null
+          napkin_url?: string | null
           title?: string
           updated_at?: string | null
-          visual?: string
         }
         Relationships: []
       }

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Helmet } from "react-helmet-async";
 
@@ -10,9 +9,9 @@ interface Solution {
   id: string;
   title: string;
   description: string;
-  benefit: string;
-  visual: string;
-  color: string;
+  highlight: string;
+  image_url: string;
+  napkin_url: string;
 }
 
 export default function SolutionsIA() {
@@ -53,6 +52,14 @@ export default function SolutionsIA() {
     loadSolutions();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin h-8 w-8 text-primary" />
+      </div>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -63,96 +70,74 @@ export default function SolutionsIA() {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-background text-foreground py-12 px-4">
+      <div className="min-h-screen bg-background text-foreground py-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Sparkles className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-bold">Solutions IA & Automatisation</h1>
+              <h1 className="text-3xl md:text-4xl font-bold">Solutions IA & Automatisation</h1>
             </div>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Découvrez comment l'IA peut transformer vos opérations — simplement, efficacement et sans rupture.
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Découvrez comment l'intelligence artificielle peut transformer vos performances et stimuler votre croissance.
             </p>
-          </motion.div>
+          </div>
 
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {solutions.map((sol, i) => (
-                <motion.div
-                  key={sol.id}
-                  className="flex flex-col"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                >
-                  <Card className="rounded-2xl overflow-hidden shadow-lg border-0 h-full hover:shadow-xl transition-shadow">
-                    <CardContent className="p-0">
-                      <div className="relative bg-surface">
-                        <img
-                          src={sol.visual}
-                          alt={sol.title}
-                          className="w-full h-64 object-cover"
-                          loading="lazy"
-                        />
-                        <div
-                          className="absolute inset-0"
-                          style={{
-                            background:
-                              "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
-                          }}
-                        />
-                      </div>
-                      <div className="p-6">
-                        <h2 
-                          className="text-2xl font-semibold mb-3"
-                          style={{ color: sol.color }}
-                        >
-                          {sol.title}
-                        </h2>
-                        <p className="text-muted-foreground mb-4 leading-relaxed">
-                          {sol.description}
-                        </p>
-                        <p className="text-sm font-medium mb-6 flex items-start gap-2">
-                          <span className="text-xl">💡</span>
-                          <span>{sol.benefit}</span>
-                        </p>
-                        <Button
-                          variant="outline"
-                          className="w-full transition-all"
-                          style={{
-                            color: sol.color,
-                            borderColor: sol.color,
-                          }}
-                          onClick={() => {
-                            logEvent(sol.id, "click");
-                            window.open("https://www.napkin.ai", "_blank");
-                          }}
-                        >
-                          Visualiser sur Napkin.ai{" "}
-                          <ExternalLink className="ml-2 h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+            {solutions.map((sol, i) => (
+              <Card
+                key={sol.id}
+                className="overflow-hidden rounded-2xl shadow-sm hover:shadow-lg transition border-0 bg-card"
+              >
+                <img 
+                  src={sol.image_url} 
+                  alt={sol.title} 
+                  className="h-56 w-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop';
+                  }}
+                />
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold mb-2 text-foreground">{sol.title}</h2>
+                  <p className="text-muted-foreground mb-4 leading-relaxed">{sol.description}</p>
+                  <div className="text-sm bg-primary/10 border border-primary/20 text-primary inline-block px-3 py-1 rounded-full mb-4">
+                    💡 {sol.highlight}
+                  </div>
+                  <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mt-4">
+                    <Button
+                      variant="outline"
+                      className="text-primary border-primary hover:bg-primary hover:text-primary-foreground transition flex-1"
+                      onClick={() => {
+                        logEvent(sol.id, "click");
+                        window.open(sol.napkin_url, "_blank");
+                      }}
+                    >
+                      Visualiser sur Napkin.ai
+                    </Button>
+                    <Button
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
+                      onClick={() => (window.location.href = "/contact")}
+                    >
+                      Demander un Audit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-          {!loading && solutions.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              Aucune solution disponible pour le moment.
-            </div>
-          )}
+          <div className="text-center mt-12">
+            <p className="text-muted-foreground text-lg mb-4">
+              Ces solutions sont générées par notre agent IA IMOTION. Et si on en créait une pour votre entreprise ?
+            </p>
+            <Button
+              size="lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 text-lg px-8 py-6 rounded-xl shadow-lg"
+              onClick={() => (window.location.href = "/audit")}
+            >
+              🚀 Lancer mon audit digital
+            </Button>
+          </div>
         </div>
       </div>
     </>
