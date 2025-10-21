@@ -667,6 +667,81 @@ export type Database = {
           },
         ]
       }
+      ia_solution_analytics: {
+        Row: {
+          created_at: string | null
+          event_type: string | null
+          id: string
+          ip_address: string | null
+          solution_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          ip_address?: string | null
+          solution_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string
+          ip_address?: string | null
+          solution_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_solution_analytics_solution_id_fkey"
+            columns: ["solution_id"]
+            isOneToOne: false
+            referencedRelation: "ia_analytics_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_solution_analytics_solution_id_fkey"
+            columns: ["solution_id"]
+            isOneToOne: false
+            referencedRelation: "ia_solutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_solutions: {
+        Row: {
+          benefit: string
+          color: string | null
+          created_at: string | null
+          description: string
+          id: string
+          title: string
+          updated_at: string | null
+          visual: string
+        }
+        Insert: {
+          benefit: string
+          color?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          title: string
+          updated_at?: string | null
+          visual: string
+        }
+        Update: {
+          benefit?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          title?: string
+          updated_at?: string | null
+          visual?: string
+        }
+        Relationships: []
+      }
       intervention_dates: {
         Row: {
           created_at: string | null
@@ -1505,6 +1580,16 @@ export type Database = {
       }
     }
     Views: {
+      ia_analytics_summary: {
+        Row: {
+          clicks: number | null
+          id: string | null
+          title: string | null
+          total_interactions: number | null
+          views: number | null
+        }
+        Relationships: []
+      }
       v_export_audit: {
         Row: {
           audit_id: string | null

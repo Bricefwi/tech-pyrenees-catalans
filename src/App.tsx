@@ -39,6 +39,8 @@ import ClientQuotes from "./pages/ClientQuotes";
 import ClientProjects from "./pages/ClientProjects";
 import ClientRequestChat from "./pages/ClientRequestChat";
 import AdminCommunicationPreview from "./pages/AdminCommunicationPreview";
+import SolutionsIA from "./pages/SolutionsIA";
+import AdminIAAnalytics from "./pages/AdminIAAnalytics";
 import Footer from "./components/layout/Footer";
 import Header from "./components/layout/Header";
 
@@ -95,6 +97,8 @@ const App = () => (
               <Route path="/admin/tests" element={<TestRunner />} />
               <Route path="/tests" element={<TestRunner />} />
               <Route path="/admin/communication-aperçu" element={<AdminCommunicationPreview />} />
+              <Route path="/solutions-ia" element={<SolutionsIA />} />
+              <Route path="/admin/ia-analytics" element={<AdminIAAnalytics />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

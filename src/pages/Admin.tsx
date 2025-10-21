@@ -91,6 +91,13 @@ export default function Admin() {
             <div className="font-semibold text-sm">📞 Suivi</div>
             <div className="text-xs text-gray-500 mt-1">Accompagnement client</div>
           </button>
+          <button
+            onClick={() => navigate("/admin/ia-analytics")}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="font-semibold text-sm">📊 IA Analytics</div>
+            <div className="text-xs text-gray-500 mt-1">Performance contenus IA</div>
+          </button>
         </div>
 
         <button

@@ -72,7 +72,7 @@ export default function Header() {
           <NavLink to="/audit" className={navLinkClass}>
             Audit
           </NavLink>
-          <NavLink to="/service-suggestions" className={navLinkClass}>
+          <NavLink to="/solutions-ia" className={navLinkClass}>
             Solutions IA
           </NavLink>
           {isAdmin && (
@@ -129,7 +129,7 @@ export default function Header() {
               <NavLink to="/audit" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                 Audit
               </NavLink>
-              <NavLink to="/service-suggestions" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
+              <NavLink to="/solutions-ia" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                 Solutions IA
               </NavLink>
               {isAdmin && (
