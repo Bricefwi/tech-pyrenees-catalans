@@ -16,8 +16,10 @@ export default function AdminQuotes() {
         .from("quotes")
         .select(`
           *,
-          profiles!quotes_client_id_fkey(full_name, email),
-          companies(name)
+          service_requests!inner(
+            client_user_id,
+            profiles!service_requests_client_user_id_fkey(full_name, email)
+          )
         `)
         .order("created_at", { ascending: false });
       
@@ -131,9 +133,9 @@ export default function AdminQuotes() {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  <div>{quote.profiles?.full_name || "—"}</div>
-                  {quote.companies?.name && (
-                    <div className="text-sm text-text-muted">{quote.companies.name}</div>
+                  <div>{quote.service_requests?.profiles?.full_name || "—"}</div>
+                  {quote.service_requests?.profiles?.email && (
+                    <div className="text-sm text-text-muted">{quote.service_requests.profiles.email}</div>
                   )}
                 </td>
                 <td className="px-6 py-4 font-semibold">

@@ -17,9 +17,8 @@ export default function AdminAudits() {
         .from("audits")
         .select(`
           *,
-          profiles!audits_client_id_fkey(full_name),
-          companies(name),
-          service_requests(title)
+          profiles!audits_created_by_fkey(full_name, email),
+          companies(name)
         `)
         .order("created_at", { ascending: false });
       
