@@ -1,8 +1,23 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  FileText, 
+  Receipt, 
+  FolderKanban, 
+  BarChart3, 
+  Calendar, 
+  Send, 
+  Mail, 
+  Eye,
+  ClipboardCheck,
+  MessageSquare
+} from "lucide-react";
 
 interface Request {
   id: string;
@@ -97,6 +112,88 @@ export default function AdminDashboard() {
           <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
         </div>
       </div>
+
+      {/* ---- Navigation Admin ---- */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Navigation Administration</CardTitle>
+          <CardDescription>Accédez rapidement à toutes les fonctionnalités administratives</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead>Module</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-[100px]">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell><FileText className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Audits</TableCell>
+                <TableCell className="text-muted-foreground">Gérer les audits clients, générer et consulter les rapports d'analyse</TableCell>
+                <TableCell><Link to="/admin/audits" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><Receipt className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Devis</TableCell>
+                <TableCell className="text-muted-foreground">Consulter et gérer tous les devis créés pour les clients</TableCell>
+                <TableCell><Link to="/admin/quotes" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><FolderKanban className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Projets</TableCell>
+                <TableCell className="text-muted-foreground">Vue liste de tous les projets clients en cours et terminés</TableCell>
+                <TableCell><Link to="/admin/projects" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><BarChart3 className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Dashboard Projets</TableCell>
+                <TableCell className="text-muted-foreground">Tableau de bord avec statistiques et métriques des projets</TableCell>
+                <TableCell><Link to="/admin/projects-dashboard" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><Calendar className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Interventions</TableCell>
+                <TableCell className="text-muted-foreground">Planning et gestion des interventions techniques planifiées</TableCell>
+                <TableCell><Link to="/admin/interventions" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><Send className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Relances</TableCell>
+                <TableCell className="text-muted-foreground">Gérer les relances automatiques et manuelles des clients</TableCell>
+                <TableCell><Link to="/admin/followups" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><Mail className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Logs Emails</TableCell>
+                <TableCell className="text-muted-foreground">Historique de tous les emails envoyés par le système</TableCell>
+                <TableCell><Link to="/admin/email-logs" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><Eye className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Aperçu Communications</TableCell>
+                <TableCell className="text-muted-foreground">Prévisualiser les templates d'emails et communications</TableCell>
+                <TableCell><Link to="/admin/communication-aperçu" className="text-primary hover:underline">Accéder</Link></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><ClipboardCheck className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Pré-Réception</TableCell>
+                <TableCell className="text-muted-foreground">Valider les besoins clients avant création de projet</TableCell>
+                <TableCell><span className="text-muted-foreground text-sm">Via demande</span></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell><MessageSquare className="h-5 w-5 text-primary" /></TableCell>
+                <TableCell className="font-medium">Chat Demandes</TableCell>
+                <TableCell className="text-muted-foreground">Échanger avec les clients sur leurs demandes de service</TableCell>
+                <TableCell><span className="text-muted-foreground text-sm">Via demande</span></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* ---- Liste des demandes ---- */}
       <section>
