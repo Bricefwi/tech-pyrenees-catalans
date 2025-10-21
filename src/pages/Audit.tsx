@@ -127,22 +127,29 @@ const Audit = () => {
         .select(`comment, sector_id, audit_sectors!inner(name)`)
         .eq("audit_id", auditId);
       
-      // Générer le rapport via l'edge function
-      const { data: reportData, error: reportError } = await supabase.functions.invoke(
-        'generate-audit-report',
-        {
-          body: {
-            audit_id: auditId
-          }
-        }
-      );
+      // Générer le rapport via l'edge function (GET avec query params)
+      const baseUrl = import.meta.env.VITE_SUPABASE_URL!.replace(/\/$/, "");
+      const functionUrl = `${baseUrl}/functions/v1/generate-audit-report`;
+      const url = new URL(functionUrl);
+      url.searchParams.set("audit_id", auditId);
 
-      if (reportError) {
-        console.error("Erreur génération rapport:", reportError);
-        throw reportError;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
       
-      setAuditReport(reportData.report);
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Erreur génération rapport:", errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const reportHtml = await response.text();
+      setAuditReport(reportHtml);
       
       console.log("✅ Rapport généré et sauvegardé en cache");
       
@@ -372,33 +379,34 @@ const Audit = () => {
         comment: c.comment
       }));
 
-      // Générer le rapport avec l'IA
-      const { data: reportData, error: reportError } = await supabase.functions.invoke(
-        'generate-audit-report',
-        {
-          body: {
-            auditData: {
-              sectors,
-              questions,
-              responses: responsesData,
-              sectorComments: sectorCommentsFormatted
-            },
-            companyInfo
-          }
-        }
-      );
+      // Générer le rapport avec l'IA (GET avec query params)
+      const baseUrl = import.meta.env.VITE_SUPABASE_URL!.replace(/\/$/, "");
+      const functionUrl = `${baseUrl}/functions/v1/generate-audit-report`;
+      const url = new URL(functionUrl);
+      url.searchParams.set("audit_id", auditId!);
 
-      if (reportError) {
-        console.error("Error generating report:", reportError);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error generating report:", errorData);
         toast({
           title: "Erreur",
-          description: "Impossible de générer le rapport IA",
+          description: errorData.error || "Impossible de générer le rapport IA",
           variant: "destructive"
         });
         return;
       }
 
-      setAuditReport(reportData.report);
+      const reportHtml = await response.text();
+      setAuditReport(reportHtml);
       
       // Mettre à jour l'audit comme complété
       const { error } = await supabase

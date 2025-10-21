@@ -58,20 +58,32 @@ const Auth = () => {
   const handleSocialAuth = async (provider: 'google' | 'azure' | 'apple') => {
     try {
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/profile-completion`;
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Use current origin for redirect
+      const currentOrigin = window.location.origin;
+      const redirectUrl = `${currentOrigin}/profile-completion`;
+      
+      console.log(`[OAuth] Initiating ${provider} auth with redirect:`, redirectUrl);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error(`[OAuth] ${provider} error:`, error);
+        throw error;
+      }
+
+      console.log(`[OAuth] ${provider} initiated successfully`);
     } catch (error: any) {
+      console.error(`[OAuth] ${provider} failed:`, error);
       toast({
         title: "Erreur d'authentification",
-        description: error.message,
+        description: error.message || `Impossible de se connecter avec ${provider}`,
         variant: "destructive",
       });
       setIsLoading(false);
