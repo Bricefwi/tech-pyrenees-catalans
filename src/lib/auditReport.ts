@@ -58,27 +58,21 @@ export function openAuditReport(auditId: string, force = false) {
 /**
  * Send audit report by email
  * @param auditId - The audit ID
- * @param recipientEmail - Email address to send to
  */
 export async function sendAuditReportEmail(
-  auditId: string,
-  recipientEmail: string
+  auditId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // First generate/get the report
-    const { html, error: reportError } = await generateAuditReport(auditId);
-    if (reportError) {
-      throw new Error(reportError);
-    }
-
-    // Get audit details for email
+    // First get audit details
     const { data: audit } = await supabase
       .from("audits")
       .select(`
         id,
         global_score,
-        company:audited_companies(name),
-        created_by
+        company_id,
+        created_by,
+        companies(name),
+        profiles!audits_created_by_fkey(full_name, email)
       `)
       .eq("id", auditId)
       .single();
@@ -87,18 +81,20 @@ export async function sendAuditReportEmail(
       throw new Error("Audit non trouvé");
     }
 
-    // Get client name
-    let clientName = "Client";
-    if (audit.created_by) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", audit.created_by)
-        .single();
-      if (profile?.full_name) {
-        clientName = profile.full_name;
-      }
+    const recipientEmail = (audit.profiles as any)?.email;
+    if (!recipientEmail) {
+      throw new Error("Email du client non trouvé");
     }
+
+    // First generate/get the report
+    const { html, error: reportError } = await generateAuditReport(auditId);
+    if (reportError) {
+      throw new Error(reportError);
+    }
+
+    // Get client name
+    const clientName = (audit.profiles as any)?.full_name || "Client";
+    const companyName = (audit.companies as any)?.name || "—";
 
     // Send email using send-email function
     const { error: emailError } = await supabase.functions.invoke("send-email", {

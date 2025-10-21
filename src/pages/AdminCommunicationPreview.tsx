@@ -6,7 +6,7 @@ import { Download, Mail, FileText, FileJson } from "lucide-react";
 import { 
   proposalEmailHtml, 
   projectProposalEmail, 
-  auditReadyEmail, 
+  auditReportReadyEmail, 
   quoteSentEmail,
   quoteValidatedEmail,
   projectPlannedEmail 
@@ -39,9 +39,10 @@ export default function AdminCommunicationPreview() {
       message: "Votre proposition détaillée est prête. Vous y trouverez notre analyse complète et nos recommandations.",
       downloadLink: "https://example.com/proposal.pdf"
     }),
-    auditReady: auditReadyEmail({
+    auditReady: auditReportReadyEmail({
       clientName: "Pierre Dubois",
-      reportUrl: "https://example.com/audit-report.pdf"
+      reportUrl: "https://example.com/audit-report.pdf",
+      score: "78.5%"
     }),
     quoteSent: quoteSentEmail({
       clientName: "Sophie Bernard",

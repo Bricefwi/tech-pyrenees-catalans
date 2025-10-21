@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, FileText, Sparkles, Plus } from "lucide-react";
+import { Loader2, FileText, Sparkles, Plus, Eye, RefreshCw, Send } from "lucide-react";
+import { openAuditReport, sendAuditReportEmail } from "@/lib/auditReport";
 
 export default function AdminAudits() {
   const queryClient = useQueryClient();
@@ -27,19 +28,14 @@ export default function AdminAudits() {
     },
   });
 
-  const generateReportMutation = useMutation({
+  const sendEmailMutation = useMutation({
     mutationFn: async (auditId: string) => {
-      const { data, error } = await supabase.functions.invoke('generate-audit-report', {
-        body: { audit_id: auditId }
-      });
-      if (error) throw error;
-      return data;
+      await sendAuditReportEmail(auditId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-audits"] });
       toast({
-        title: "Rapport généré",
-        description: "Le rapport d'audit a été généré avec succès",
+        title: "Email envoyé",
+        description: "Le rapport a été envoyé au client avec succès",
       });
     },
     onError: (error) => {
@@ -126,19 +122,51 @@ export default function AdminAudits() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => generateReportMutation.mutate(audit.id)}
-                      disabled={generateReportMutation.isPending}
-                      className="gap-1"
-                    >
-                      {generateReportMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
+                    {audit.generated_report ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openAuditReport(audit.id)}
+                          className="gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Voir
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openAuditReport(audit.id, true)}
+                          className="gap-1"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Regénérer
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => sendEmailMutation.mutate(audit.id)}
+                          disabled={sendEmailMutation.isPending}
+                          className="gap-1"
+                        >
+                          {sendEmailMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                          Envoyer
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => openAuditReport(audit.id)}
+                        className="gap-1"
+                      >
                         <Sparkles className="h-4 w-4" />
-                      )}
-                      IA → Rapport
-                    </Button>
+                        Générer rapport
+                      </Button>
+                    )}
                     <Link to={`/admin/quotes/new?audit=${audit.id}`}>
                       <Button size="sm" variant="outline" className="gap-1">
                         <Plus className="h-4 w-4" />

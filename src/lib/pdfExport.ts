@@ -2,6 +2,35 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
 /**
+ * Exporter la page HTML actuelle en PDF (pour rapports d'audit)
+ * @param filename - Nom du fichier PDF généré
+ */
+export async function exportCurrentPageToPDF(filename = "IMOTION_Audit.pdf") {
+  const content = document.documentElement.cloneNode(true) as HTMLElement;
+  const wrapElement = content.querySelector(".wrap");
+  const main = wrapElement ? (wrapElement as HTMLElement) : content.querySelector("body") as HTMLElement;
+  
+  const canvas = await html2canvas(main as HTMLElement, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+  });
+
+  const imgData = canvas.toDataURL("image/jpeg", 0.98);
+  const imgWidth = 210; // A4 width in mm
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  
+  const pdf = new jsPDF({
+    orientation: imgHeight > imgWidth ? "portrait" : "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
+  pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+  pdf.save(filename);
+}
+
+/**
  * Exporter une zone HTML en PDF (compatible Lovable + React)
  * @param elementId - L'ID de l'élément HTML à exporter (ex: "gantt-container")
  * @param filename - Nom du fichier PDF généré

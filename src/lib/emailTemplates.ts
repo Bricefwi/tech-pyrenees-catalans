@@ -100,23 +100,33 @@ export function projectProposalEmail({
   return wrapEmailHTML(inner, "Nouvelle proposition");
 }
 
-// Template pour audit prêt
-export function auditReadyEmail({
+// Template pour audit prêt avec score
+export function auditReportReadyEmail({
   clientName,
   reportUrl,
+  score,
 }: {
   clientName: string;
   reportUrl: string;
+  score?: string;
 }) {
   const inner = `
-    <h2 style="color:#D91E18;margin-bottom:16px">Votre rapport d'audit est prêt</h2>
+    <h2 style="color:#E31E24;margin-bottom:16px">Votre rapport d'audit est prêt</h2>
     <p>Bonjour ${clientName},</p>
-    <p>Nous avons analysé votre besoin en détail. Votre rapport d'audit personnalisé est maintenant disponible.</p>
+    <p>Votre rapport d'audit personnalisé est maintenant disponible.</p>
+    ${score ? `<p style="font-size:18px;font-weight:700;color:#E31E24;margin:16px 0">Score global pondéré : ${score}</p>` : ''}
     <p style="text-align:center;margin:24px 0">
-      <a class="btn" href="${reportUrl}">Consulter le rapport</a>
+      <a class="btn" href="${reportUrl}">Consulter le rapport complet</a>
     </p>
-    <p>Notre équipe reste à votre disposition pour échanger sur les recommandations et prochaines étapes.</p>
-    <p>Cordialement,<br>L'équipe IMOTION</p>
+    <p>Ce rapport inclut :</p>
+    <ul style="line-height:1.8">
+      <li>Analyse détaillée par secteur</li>
+      <li>Axes d'amélioration priorisés avec gains attendus</li>
+      <li>Plan d'accompagnement avec jalons et Gantt</li>
+    </ul>
+    <p>Nous proposons un <strong>atelier de cadrage (2h)</strong> pour valider les priorités et caler le planning.</p>
+    <p>Notre équipe reste à votre disposition.</p>
+    <p>Cordialement,<br>L'équipe IMOTION<br><span style="color:#6B7280;font-size:12px">Apple • Automatisation • IA</span></p>
   `;
   return wrapEmailHTML(inner, "Rapport d'audit IMOTION");
 }

@@ -1,11 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import Gantt from "frappe-gantt";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToPDF } from "@/lib/pdfExport";
 import "../styles/gantt.css";
 
 /**
  * Composant Gantt
  * Affiche la planification des projets (jalons, tâches, délais)
  * Compatible avec Supabase ou toute source d'API contenant : id, name, start, end, progress
+ * Supporte aussi les données JSON du roadmap AI (format generate-audit-report)
  */
 interface ProjectTask {
   id: string;
@@ -19,9 +23,16 @@ interface ProjectTask {
 interface ProjectGanttProps {
   tasks: ProjectTask[];
   onClickTask?: (task: ProjectTask) => void;
+  showExportButton?: boolean;
+  exportFilename?: string;
 }
 
-export default function ProjectGantt({ tasks, onClickTask }: ProjectGanttProps) {
+export default function ProjectGantt({ 
+  tasks, 
+  onClickTask, 
+  showExportButton = false,
+  exportFilename = "Planning_IMOTION"
+}: ProjectGanttProps) {
   const ganttRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,8 +64,32 @@ export default function ProjectGantt({ tasks, onClickTask }: ProjectGanttProps) 
     };
   }, [tasks, onClickTask]);
 
+  const handleExportPDF = async () => {
+    if (ganttRef.current) {
+      await exportToPDF(
+        ganttRef.current.id || "gantt-export",
+        exportFilename,
+        "Planning Projet IMOTION",
+        "IMOTION"
+      );
+    }
+  };
+
   return (
-    <div className="gantt-container">
+    <div className="gantt-container" id="gantt-export">
+      {showExportButton && tasks?.length > 0 && (
+        <div className="mb-4 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter en PDF
+          </Button>
+        </div>
+      )}
       {tasks?.length ? (
         <div ref={ganttRef} className="gantt w-full"></div>
       ) : (
