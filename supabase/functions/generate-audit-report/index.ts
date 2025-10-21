@@ -1,69 +1,32 @@
 // supabase/functions/generate-audit-report/index.ts
+// Version IMOTION v3.0 – Audit Deep Think Senior
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.3";
 import OpenAI from "npm:openai@4.52.5";
 
-// ---------- Types & Helpers
-type Sector = {
-  sector_id: string;
-  sector_name: string;
-  weighting: number;
-  score: number;
-  comments: string | null;
-};
-
-type AuditDTO = {
-  audit_id: string;
-  title: string | null;
-  created_at: string;
-  status: string;
-  company_name: string | null;
-  client_name: string | null;
-  client_email: string | null;
-  generated_report: string | null;
-  sectors: Sector[];
-  responses: Array<{
-    sector_id: string;
-    sector_name: string;
-    question: string;
-    response_value: string | number | null;
-    score: number | null;
-    comment: string | null;
-  }>;
-};
-
-const BRAND = {
-  name: "IMOTION",
-  color: "#E11932",
-  dark: "#111111",
-  light: "#f7f7f8",
-  gray: "#6B7280",
-  logoUrl: "https://nmlkqyhkygdajqaffzny.supabase.co/storage/v1/object/public/imotion-docs/logo-imotion.png",
-};
-
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ---------- HTTP handler
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const url = new URL(req.url);
     const auditId = url.searchParams.get("audit_id");
+    const force = url.searchParams.get("force") === "1";
+    
     if (!auditId) {
-      return new Response(
-        JSON.stringify({ error: "Missing audit_id parameter" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing audit_id" }), { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
-
-    console.log(`[generate-audit-report] Processing audit: ${auditId}`);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -71,488 +34,484 @@ serve(async (req) => {
     );
     const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY")! });
 
-    // 1) Load audit metadata
+    console.log(`[generate-audit-report v3.0] Processing audit ${auditId} (force: ${force})`);
+
+    // --- Chargement des données audit
     const { data: auditMeta, error: e1 } = await supabase
       .from("audits")
       .select(`
-        id, created_at, status, 
-        company:audited_companies(name),
-        created_by, generated_report
+        id, created_at, status, title,
+        companies(name),
+        profiles!audits_created_by_fkey(full_name, email),
+        generated_report
       `)
       .eq("id", auditId)
       .single();
-
+      
     if (e1 || !auditMeta) {
-      console.error("[generate-audit-report] Audit not found:", e1?.message);
-      return new Response(
-        JSON.stringify({ error: "Audit not found", details: e1?.message }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("[generate-audit-report] Audit not found:", e1);
+      throw new Error("Audit introuvable");
     }
 
-    // Get client info
-    let clientName = "Client";
-    let clientEmail = "";
-    if (auditMeta.created_by) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, email")
-        .eq("user_id", auditMeta.created_by)
-        .single();
-      if (profile) {
-        clientName = profile.full_name || clientName;
-        clientEmail = profile.email || "";
-      }
+    // Si rapport déjà généré et pas de force, retourner l'existant
+    if (auditMeta.generated_report && !force) {
+      console.log("[generate-audit-report] Returning cached report");
+      return new Response(auditMeta.generated_report, { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
+      });
     }
 
-    // 2) Load sectors
-    const { data: sectorsRaw, error: e2 } = await supabase
+    const { data: sectorsRaw } = await supabase
       .from("audit_sectors")
       .select("id, name, weighting")
       .order("order_index", { ascending: true });
-    if (e2) {
-      console.error("[generate-audit-report] Error loading sectors:", e2.message);
-      throw e2;
-    }
 
-    // 3) Load responses
-    const { data: respRaw, error: e3 } = await supabase
+    const { data: respRaw } = await supabase
       .from("audit_responses")
       .select(`
         question_id,
         response_value,
         score,
-        audit_questions!inner(
-          id, question_text, sector_id, subdomain
-        )
+        audit_questions!inner(id, question_text, sector_id)
       `)
       .eq("audit_id", auditId);
-    if (e3) {
-      console.error("[generate-audit-report] Error loading responses:", e3.message);
-      throw e3;
-    }
 
-    // 4) Load sector comments
-    const { data: commentsRaw } = await supabase
-      .from("sector_comments")
-      .select("sector_id, comment")
-      .eq("audit_id", auditId);
-
-    // 5) Aggregate sectors with scores
-    const sectors: Sector[] = (sectorsRaw ?? []).map((s) => {
+    const sectors = (sectorsRaw ?? []).map((s) => {
       const scores = (respRaw ?? [])
         .filter((r: any) => r.audit_questions?.sector_id === s.id && r.score != null)
         .map((r: any) => Number(r.score));
-      const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-      const comment = (commentsRaw ?? []).find((c) => c.sector_id === s.id)?.comment ?? null;
-      return {
-        sector_id: s.id,
-        sector_name: s.name,
-        weighting: Number(s.weighting ?? 0),
+      const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+      const maturityPct = Math.round((avg / 20) * 100);
+      return { 
+        sector_id: s.id, 
+        sector_name: s.name, 
+        weighting: Number(s.weighting ?? 0), 
         score: Number(avg.toFixed(2)),
-        comments: comment,
+        maturity_pct: maturityPct
       };
     });
 
-    const responses = (respRaw ?? []).map((r: any) => ({
-      sector_id: r.audit_questions?.sector_id!,
-      sector_name: sectors.find((s) => s.sector_id === r.audit_questions?.sector_id)?.sector_name ?? "",
-      question: r.audit_questions?.question_text ?? "",
-      response_value: r.response_value,
-      score: r.score,
-      comment: null as string | null,
-    }));
-
-    // 6) Build DTO
-    const dto: AuditDTO = {
+    const dto = {
       audit_id: auditMeta.id,
-      title: "Audit de maturité numérique",
-      created_at: auditMeta.created_at,
-      status: auditMeta.status,
-      company_name: (auditMeta.company as any)?.name ?? null,
-      client_name: clientName,
-      client_email: clientEmail,
-      generated_report: auditMeta.generated_report,
+      company_name: (auditMeta.companies as any)?.name ?? null,
+      client_name: (auditMeta.profiles as any)?.full_name ?? null,
+      client_email: (auditMeta.profiles as any)?.email ?? null,
       sectors,
-      responses,
+      responses: (respRaw ?? []).map((r: any) => ({
+        sector_id: r.audit_questions?.sector_id!,
+        sector_name: sectors.find(s => s.sector_id === r.audit_questions?.sector_id)?.sector_name ?? "",
+        question: r.audit_questions?.question_text ?? "",
+        response_value: r.response_value,
+        score: r.score
+      }))
     };
 
-    // 7) If report already exists and force is not set, return it
-    if (dto.generated_report && url.searchParams.get("force") !== "1") {
-      console.log("[generate-audit-report] Returning cached report");
-      return new Response(dto.generated_report, {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
+    const weightedScore = sectors.reduce((acc, s) => acc + (s.score/20) * (s.weighting), 0);
 
-    // 8) Calculate weighted score and sector priorities
-    const sectorBlocks = dto.sectors
-      .map((s) => {
-        const maturityPct = Math.round((s.score / 20) * 100);
-        return {
-          ...s,
-          maturity_pct: maturityPct,
-          deficit_weighted: Number(((20 - s.score) * (s.weighting / 100)).toFixed(2)),
-        };
-      })
-      .sort((a, b) => b.deficit_weighted - a.deficit_weighted);
+    console.log("[generate-audit-report v3.0] Calling OpenAI with Deep Think Senior prompt");
 
-    const weightedScore = sectorBlocks.reduce((acc, s) => acc + (s.score / 20) * s.weighting, 0);
-
-    console.log("[generate-audit-report] Calculated weighted score:", weightedScore.toFixed(1));
-
-    // 9) Generate AI report with structured JSON output
+    // --- PROMPT IA VERSION SENIOR IMOTION (Deep Think Expert)
     const prompt = `
-Tu es un consultant senior IMOTION spécialisé en transformation numérique (Apple & IA). 
-Analyse cet audit numérique et fournis un rapport structuré en JSON.
+Tu es un **consultant senior IMOTION**, expert Apple, IA, et automatisation. 
+Ta mission : rédiger un rapport d'audit complet, exploitable commercialement, sans jargon inutile.
+Style : professionnel, structuré, orienté ROI, concret, crédible.
 
-DONNÉES:
-- Client: ${dto.client_name} / ${dto.company_name ?? "—"} / Email: ${dto.client_email}
-- Score global pondéré: ${weightedScore.toFixed(1)}%
-- Secteurs (ordre priorité = manque pondéré décroissant): 
-${sectorBlocks.map((s) => `  - ${s.sector_name} (poids ${s.weighting}%, score ${s.score}/20, maturité ${s.maturity_pct}%)`).join("\n")}
-- Réponses détaillées: ${JSON.stringify(dto.responses.slice(0, 50))}
+1️⃣ Diagnostic : liste exhaustive des réponses par secteur (forces/faiblesses, scores, synthèse).
+2️⃣ Analyse stratégique : quick wins, chantiers structurants, risques, mesures correctives, gains chiffrés prudents.
+3️⃣ Synthèse exécutive : 5 lignes maximum, ton consultant senior.
+4️⃣ Plan d'accompagnement : 4 phases avec objectifs, livrables, risques/mitigation et Gantt JSON.
+5️⃣ ROI global : estimation prudente (min–max %).
 
-INSTRUCTIONS:
-1) **Rappel exhaustif** : Liste par secteur -> question -> réponse + score
-2) **Analyse critique** : Pour chaque secteur, synthèse des faiblesses, risques, recommandations
-   - Quick wins (≤4 semaines)
-   - Chantiers (2-6 mois)
-   - Gains estimés (prudents, bornés min-max) : temps admin, erreurs, ruptures stock, DSO, trafic, conversion
-3) **Plan d'accompagnement** : 4 phases avec jalons, livrables, critères succès, risques, mitigations, Gantt JSON
-
-FORMAT JSON STRICT:
+Format JSON strict :
 {
-  "recap": [
-    { "sector": "nom", "weighting": 0-100, "maturity_pct": 0-100,
-      "items": [{"question": "...", "response": "...", "score": 0-20}]
-    }
-  ],
-  "improvements": [
-    { "sector": "nom", 
-      "quick_wins": ["..."], 
-      "projects": ["..."], 
-      "estimated_gains": {
-        "admin_time": {"min": 0, "max": 0}, 
-        "input_errors": {"min":0,"max":0},
-        "stockouts": {"min":0,"max":0}, 
-        "dso": {"min":0,"max":0},
-        "traffic": {"min":0,"max":0}, 
-        "conversion": {"min":0,"max":0}
-      }
-    }
-  ],
-  "roadmap": {
-    "phases": [
-      { "name": "Phase 1 – ...", "weeks": 0, "deliverables": ["..."], 
-        "success_criteria": ["..."], "risks": ["..."], "mitigations": ["..."] }
-    ],
-    "gantt": [
-      { "id": "T1", "name": "Cadrage", "start": "2025-11-04", "end": "2025-11-29", "progress": 0 },
-      { "id": "T2", "name": "Quick wins", "start": "2025-12-02", "end": "2025-12-27", "progress": 0, "dependencies": "T1" }
-    ],
-    "effort_table": [
-      { "workstream": "Automatisation", "effort_weeks": 4 }
-    ]
-  }
+  "executive_summary": "texte concis",
+  "recap": [{"sector":"...","weighting":0,"maturity_pct":0,"items":[{"question":"...","response":"...","score":0}],"synthesis":{"strengths":"...","weaknesses":"..."}}],
+  "improvements": [{"sector":"...","quick_wins":["..."],"projects":["..."],"risks":["..."],"mitigations":["..."],"estimated_gains":{"admin_time":{"min":0,"max":0},"input_errors":{"min":0,"max":0},"stockouts":{"min":0,"max":0},"dso":{"min":0,"max":0},"traffic":{"min":0,"max":0},"conversion":{"min":0,"max":0}}}],
+  "roadmap": {"phases":[{"name":"Phase 1 – ...","weeks":0,"objectives":["..."],"deliverables":["..."],"success_criteria":["..."],"risks":["..."],"mitigations":["..."]}],"gantt":[{"id":"T1","name":"...","start":"AAAA-MM-JJ","end":"AAAA-MM-JJ","progress":0}],"effort_table":[{"workstream":"Automatisation","effort_weeks":0}]},
+  "roi_summary": {"global_gain_pct":{"min":0,"max":0},"key_message":"..."}
 }
-`;
 
-    console.log("[generate-audit-report] Calling OpenAI for analysis...");
+Client: ${dto.client_name ?? "—"}
+Entreprise: ${dto.company_name ?? "—"}
+Email: ${dto.client_email ?? "—"}
+Score global: ${weightedScore.toFixed(1)}%
+Secteurs: ${JSON.stringify(dto.sectors).slice(0, 2000)}
+Réponses: ${JSON.stringify(dto.responses).slice(0, 6000)}
+`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.2,
+      temperature: 0.25,
       response_format: { type: "json_object" },
       messages: [
-        {
-          role: "system",
-          content: "Tu es un consultant IMOTION, style concis, opérationnel, orienté ROI.",
-        },
-        { role: "user", content: prompt },
+        { role: "system", content: "Tu es un consultant IMOTION Senior : tu analyses, recommandes, conclus, structure." },
+        { role: "user", content: prompt }
       ],
     });
 
     const json = JSON.parse(completion.choices[0].message.content ?? "{}");
-    console.log("[generate-audit-report] AI analysis completed");
+    console.log("[generate-audit-report v3.0] AI analysis complete, generating HTML");
 
-    // 10) Transform to branded HTML
-    const html = renderReportHTML({
-      brand: BRAND,
-      meta: {
-        reference: `AUD-${dto.audit_id.slice(0, 8)}`,
-        date: new Date().toLocaleDateString("fr-FR"),
-        client: dto.client_name || "Client",
-        company: dto.company_name || "—",
-        email: dto.client_email || "—",
-        weightedScore: `${weightedScore.toFixed(1)}%`,
-        tagline: "Accélérer sans casser : des gains mesurables, vite.",
-      },
-      recap: json.recap ?? [],
-      improvements: json.improvements ?? [],
-      roadmap: json.roadmap ?? { phases: [], gantt: [], effort_table: [] },
-    });
-
-    // 11) Save to database
-    const { error: updateError } = await supabase
-      .from("audits")
-      .update({ 
-        generated_report: html,
-        global_score: weightedScore 
-      })
-      .eq("id", auditId);
-
-    if (updateError) {
-      console.error("[generate-audit-report] Error saving report:", updateError.message);
-    } else {
-      console.log("[generate-audit-report] Report saved successfully");
+    // --- Génération HTML Premium IMOTION
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rapport d'Audit IMOTION - ${dto.client_name ?? "Client"}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #111;
+      line-height: 1.6;
     }
-
-    return new Response(html, {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
-    });
-  } catch (e: any) {
-    console.error("[generate-audit-report] Error:", e.message, e.stack);
-    return new Response(
-      JSON.stringify({ error: e?.message || "Unexpected error", stack: e?.stack }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-});
-
-// ---------- HTML Renderer
-function renderReportHTML({
-  brand,
-  meta,
-  recap,
-  improvements,
-  roadmap,
-}: {
-  brand: typeof BRAND;
-  meta: {
-    reference: string;
-    date: string;
-    client: string;
-    company: string;
-    email: string;
-    weightedScore: string;
-    tagline: string;
-  };
-  recap: any[];
-  improvements: any[];
-  roadmap: { phases: any[]; gantt: any[]; effort_table: any[] };
-}) {
-  const css = `
-    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system; color:${brand.dark}; background:#fff; margin:0; padding:0; }
-    .wrap { max-width: 860px; margin: 24px auto; padding: 16px 24px 48px; }
-    .header { display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2px solid ${brand.color}; padding-bottom:16px; margin-bottom:24px; }
-    .brand { display:flex; gap:12px; align-items:center; }
-    .brand img { height:50px; }
-    .brand-text { font-size:24px; font-weight:700; color:${brand.color}; }
-    .brand-subtitle { font-size:12px; color:${brand.gray}; margin-top:2px; }
-    .meta { text-align:right; font-size:12px; color:${brand.gray}; line-height:1.6; }
-    .meta div { margin-bottom:4px; }
-    .meta b { color:${brand.dark}; font-weight:600; }
-    h1 { font-size:28px; margin:24px 0 8px; color:${brand.dark}; }
-    .tagline { color:${brand.gray}; margin-bottom:20px; font-size:15px; }
-    .badge { display:inline-block; background:${brand.light}; border:1px solid #e5e7eb; padding:4px 10px; border-radius:6px; font-size:12px; margin:2px; }
-    .kpi { background:#F8FAFC; border:1px solid #E5E7EB; border-left:4px solid ${brand.color}; padding:16px; margin:16px 0; border-radius:10px; }
-    .kpi b { color:${brand.dark}; }
-    .section { margin-top:32px; }
-    .section h2 { font-size:22px; margin:0 0 12px; padding-top:12px; border-top:3px solid ${brand.color}; color:${brand.dark}; }
-    .table { width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; }
-    .table th, .table td { border:1px solid #e5e7eb; padding:10px; text-align:left; }
-    .table th { background:#F8FAFC; font-weight:600; color:${brand.dark}; }
-    .table tbody tr:hover { background:#fafafa; }
-    .table ul { margin:4px 0; padding-left:20px; }
-    .table li { margin:4px 0; }
-    .flex-container { display:flex; gap:24px; margin-top:12px; flex-wrap:wrap; }
-    .flex-item { flex:1; min-width:200px; }
-    .flex-item-title { font-weight:600; margin-bottom:6px; color:${brand.dark}; font-size:14px; }
-    .flex-item ul { margin:4px 0; padding-left:20px; font-size:13px; }
-    .flex-item li { margin:6px 0; line-height:1.5; }
-    .gantt-json { background:#f1f5f9; border:1px solid #cbd5e1; padding:12px; border-radius:8px; margin:12px 0; }
-    .gantt-json pre { margin:0; white-space:pre-wrap; word-wrap:break-word; font-size:12px; font-family:monospace; }
-    .foot { margin-top:48px; padding-top:24px; border-top:1px solid #e5e7eb; font-size:12px; color:${brand.gray}; text-align:center; }
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #E11932;
+      padding-bottom: 16px;
+      margin-bottom: 32px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: #E11932;
+    }
+    .tagline {
+      font-size: 12px;
+      color: #6B7280;
+      margin-top: 2px;
+    }
+    .meta {
+      text-align: right;
+      font-size: 12px;
+      color: #6B7280;
+    }
+    .meta strong {
+      color: #111;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #E11932;
+      margin: 40px 0 16px;
+      padding-top: 16px;
+      border-top: 2px solid #E11932;
+    }
+    .executive-summary {
+      background: linear-gradient(135deg, #FEF2F2 0%, #FFF 100%);
+      border-left: 4px solid #E11932;
+      padding: 20px;
+      margin: 24px 0;
+      border-radius: 8px;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .executive-summary strong {
+      display: block;
+      font-size: 16px;
+      color: #E11932;
+      margin-bottom: 12px;
+    }
+    .kpi-card {
+      background: #F8FAFC;
+      border: 1px solid #E5E7EB;
+      border-left: 4px solid #E11932;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+    .kpi-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-block;
+      background: #E11932;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+    ul {
+      margin: 8px 0 8px 24px;
+      list-style: disc;
+    }
+    ul li {
+      margin: 4px 0;
+      color: #4B5563;
+    }
+    .synthesis {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #E5E7EB;
+    }
+    .synthesis-item {
+      margin: 8px 0;
+    }
+    .synthesis-label {
+      font-weight: 600;
+      color: #111;
+      margin-right: 8px;
+    }
+    .phase-card {
+      background: #fff;
+      border: 1px solid #E5E7EB;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 12px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .phase-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #E11932;
+      margin-bottom: 12px;
+    }
+    .roi-box {
+      background: linear-gradient(135deg, #FEF2F2 0%, #FFF 100%);
+      border: 2px solid #E11932;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 24px 0;
+      text-align: center;
+    }
+    .roi-number {
+      font-size: 32px;
+      font-weight: 800;
+      color: #E11932;
+      margin: 12px 0;
+    }
+    .footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid #E5E7EB;
+      text-align: center;
+      font-size: 12px;
+      color: #6B7280;
+    }
     @media print {
-      .wrap { margin:0; padding:20px; }
-      .kpi { page-break-inside:avoid; }
+      body { background: #fff; }
+      .container { padding: 20px; }
     }
-  `;
-
-  const recapTable = `
-    <table class="table">
-      <thead><tr><th>Secteur</th><th>Pondération</th><th>Maturité</th><th>Détails (échantillon)</th></tr></thead>
-      <tbody>
-        ${recap
-          .map(
-            (r: any) => `
-          <tr>
-            <td><b>${escapeHtml(r.sector)}</b></td>
-            <td>${r.weighting}%</td>
-            <td><span class="badge">${r.maturity_pct}%</span></td>
-            <td>
-              <ul style="margin:0;padding-left:18px">
-                ${r.items
-                  .slice(0, 5)
-                  .map(
-                    (i: any) =>
-                      `<li><b>${escapeHtml(i.question)}</b> — ${escapeHtml(String(i.response ?? "—"))} <span class="badge">${i.score}/20</span></li>`
-                  )
-                  .join("")}
-                ${r.items.length > 5 ? `<li>… ${r.items.length - 5} autres questions</li>` : ""}
-              </ul>
-            </td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-
-  const improvBlocks = improvements
-    .map(
-      (i: any) => `
-    <div class="kpi">
-      <b style="font-size:16px">${escapeHtml(i.sector)}</b>
-      <div class="flex-container">
-        <div class="flex-item">
-          <div class="flex-item-title">🚀 Quick wins (≤4 semaines)</div>
-          <ul>${(i.quick_wins || []).map((q: string) => `<li>${escapeHtml(q)}</li>`).join("")}</ul>
-        </div>
-        <div class="flex-item">
-          <div class="flex-item-title">🏗️ Chantiers (2–6 mois)</div>
-          <ul>${(i.projects || []).map((q: string) => `<li>${escapeHtml(q)}</li>`).join("")}</ul>
-        </div>
-        <div class="flex-item">
-          <div class="flex-item-title">📈 Gains attendus (prudence)</div>
-          <ul>
-            ${gainLine("Temps admin", i.estimated_gains?.admin_time)}
-            ${gainLine("Erreurs de saisie", i.estimated_gains?.input_errors)}
-            ${gainLine("Ruptures de stock", i.estimated_gains?.stockouts)}
-            ${gainLine("DSO (encours clients)", i.estimated_gains?.dso)}
-            ${gainLine("Trafic", i.estimated_gains?.traffic)}
-            ${gainLine("Conversion", i.estimated_gains?.conversion)}
-          </ul>
-        </div>
-      </div>
-    </div>
-  `
-    )
-    .join("");
-
-  const phases = (roadmap.phases || [])
-    .map(
-      (p: any) => `
-    <div class="kpi">
-      <b style="font-size:16px">${escapeHtml(p.name)}</b> — ${p.weeks ?? "?"} semaines
-      <div class="flex-container">
-        <div class="flex-item">
-          <div class="flex-item-title">📦 Livrables</div>
-          <ul>${(p.deliverables || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
-        </div>
-        <div class="flex-item">
-          <div class="flex-item-title">✅ Critères de succès</div>
-          <ul>${(p.success_criteria || []).map((d: string) => `<li>${escapeHtml(d)}</li>`).join("")}</ul>
-        </div>
-        ${
-          p.risks?.length
-            ? `<div class="flex-item">
-          <div class="flex-item-title">⚠️ Risques</div>
-          <ul>${p.risks.map((r: string) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
-        </div>`
-            : ""
-        }
-        ${
-          p.mitigations?.length
-            ? `<div class="flex-item">
-          <div class="flex-item-title">🛡️ Mitigations</div>
-          <ul>${p.mitigations.map((r: string) => `<li>${escapeHtml(r)}</li>`).join("")}</ul>
-        </div>`
-            : ""
-        }
-      </div>
-    </div>
-  `
-    )
-    .join("");
-
-  const ganttJson = JSON.stringify(roadmap.gantt ?? [], null, 2);
-  const effortTable =
-    roadmap.effort_table && roadmap.effort_table.length > 0
-      ? `
-    <table class="table" style="max-width:500px">
-      <thead><tr><th>Chantier</th><th>Effort (semaines)</th></tr></thead>
-      <tbody>
-        ${roadmap.effort_table.map((e: any) => `<tr><td>${escapeHtml(e.workstream)}</td><td>${e.effort_weeks}</td></tr>`).join("")}
-      </tbody>
-    </table>
-  `
-      : "";
-
-  return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Rapport d'audit – ${escapeHtml(meta.client)}</title>
-<style>${css}</style></head>
+  </style>
+</head>
 <body>
-  <div class="wrap">
+  <div class="container">
+    <!-- En-tête -->
     <div class="header">
       <div class="brand">
-        <img src="${brand.logoUrl}" alt="${brand.name}" onerror="this.style.display='none'">
         <div>
-          <div class="brand-text">${brand.name}</div>
-          <div class="brand-subtitle">Apple • Automatisation • IA</div>
+          <div class="brand-text">IMOTION</div>
+          <div class="tagline">Apple • Automatisation • IA</div>
         </div>
       </div>
       <div class="meta">
-        <div><b>Référence</b> ${escapeHtml(meta.reference)}</div>
-        <div><b>Date</b> ${escapeHtml(meta.date)}</div>
-        <div><b>Client</b> ${escapeHtml(meta.client)}</div>
-        <div><b>Société</b> ${escapeHtml(meta.company)}</div>
-        <div><b>Email</b> ${escapeHtml(meta.email)}</div>
+        <div><strong>Ref.</strong> AUD-${auditId.slice(0, 8)}</div>
+        <div><strong>Date</strong> ${new Date().toLocaleDateString("fr-FR")}</div>
+        <div><strong>Client</strong> ${dto.client_name ?? "—"}</div>
+        <div><strong>Société</strong> ${dto.company_name ?? "—"}</div>
+        <div><strong>Score</strong> <span style="color:#E11932;font-weight:700">${weightedScore.toFixed(1)}%</span></div>
       </div>
     </div>
 
-    <h1>Rapport d'audit & Plan d'accompagnement</h1>
-    <div class="tagline">${escapeHtml(meta.tagline)}</div>
-    <div class="kpi"><b>Score global pondéré :</b> ${escapeHtml(meta.weightedScore)}</div>
+    <h1>Rapport d'Audit & Plan d'Accompagnement</h1>
 
-    <div class="section">
-      <h2>1. Rappel détaillé des réponses (par secteur)</h2>
-      ${recapTable}
+    <!-- Résumé exécutif -->
+    <div class="executive-summary">
+      <strong>🎯 Résumé Exécutif</strong>
+      ${json.executive_summary ?? "En cours d'analyse..."}
     </div>
 
-    <div class="section">
-      <h2>2. Axes d'amélioration priorisés et gains attendus</h2>
-      ${improvBlocks || '<div class="kpi">Aucune amélioration identifiée.</div>'}
-    </div>
+    <!-- Section 1 : Diagnostic -->
+    <h2>1. Diagnostic Détaillé par Secteur</h2>
+    ${(json.recap || []).map((s: any) => `
+      <div class="kpi-card">
+        <h3>${s.sector || "Secteur"}<span class="badge">Maturité ${s.maturity_pct ?? 0}%</span></h3>
+        ${s.items && s.items.length > 0 ? `
+          <ul>
+            ${s.items.slice(0, 5).map((item: any) => `
+              <li><strong>${item.question}</strong> — ${item.response} <em>(${item.score}/20)</em></li>
+            `).join("")}
+            ${s.items.length > 5 ? `<li><em>... et ${s.items.length - 5} autres réponses</em></li>` : ""}
+          </ul>
+        ` : ""}
+        ${s.synthesis ? `
+          <div class="synthesis">
+            ${s.synthesis.strengths ? `
+              <div class="synthesis-item">
+                <span class="synthesis-label">✅ Forces :</span>
+                <span>${s.synthesis.strengths}</span>
+              </div>
+            ` : ""}
+            ${s.synthesis.weaknesses ? `
+              <div class="synthesis-item">
+                <span class="synthesis-label">⚠️ Faiblesses :</span>
+                <span>${s.synthesis.weaknesses}</span>
+              </div>
+            ` : ""}
+          </div>
+        ` : ""}
+      </div>
+    `).join("")}
 
-    <div class="section">
-      <h2>3. Projet d'accompagnement (phases, jalons, Gantt)</h2>
-      ${phases || '<div class="kpi">Phases à préciser en atelier de cadrage.</div>'}
-      
-      ${effortTable}
-      
-      <div class="kpi">
-        <b>Gantt JSON (intégration ProjectGantt)</b>
-        <div class="gantt-json"><pre>${escapeHtml(ganttJson)}</pre></div>
+    <!-- Section 2 : Recommandations -->
+    <h2>2. Axes d'Amélioration & Gains Attendus</h2>
+    ${(json.improvements || []).map((i: any) => `
+      <div class="kpi-card">
+        <h3>${i.sector || "Secteur"}</h3>
+        ${i.quick_wins && i.quick_wins.length > 0 ? `
+          <div style="margin:12px 0">
+            <strong>⚡ Quick Wins (≤ 4 semaines) :</strong>
+            <ul>${i.quick_wins.map((w: string) => `<li>${w}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${i.projects && i.projects.length > 0 ? `
+          <div style="margin:12px 0">
+            <strong>🏗️ Chantiers structurants (2-6 mois) :</strong>
+            <ul>${i.projects.map((p: string) => `<li>${p}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${i.risks && i.risks.length > 0 ? `
+          <div style="margin:12px 0">
+            <strong>⚠️ Risques identifiés :</strong>
+            <ul>${i.risks.map((r: string) => `<li>${r}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${i.mitigations && i.mitigations.length > 0 ? `
+          <div style="margin:12px 0">
+            <strong>🛡️ Mesures correctives :</strong>
+            <ul>${i.mitigations.map((m: string) => `<li>${m}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${i.estimated_gains ? `
+          <div style="margin:12px 0">
+            <strong>📈 Gains estimés (prudent) :</strong>
+            <ul>
+              ${i.estimated_gains.admin_time ? `<li>Temps admin : ${i.estimated_gains.admin_time.min}% → ${i.estimated_gains.admin_time.max}%</li>` : ""}
+              ${i.estimated_gains.input_errors ? `<li>Erreurs de saisie : ${i.estimated_gains.input_errors.min}% → ${i.estimated_gains.input_errors.max}%</li>` : ""}
+              ${i.estimated_gains.stockouts ? `<li>Ruptures de stock : ${i.estimated_gains.stockouts.min}% → ${i.estimated_gains.stockouts.max}%</li>` : ""}
+              ${i.estimated_gains.dso ? `<li>DSO (encours clients) : ${i.estimated_gains.dso.min}% → ${i.estimated_gains.dso.max}%</li>` : ""}
+              ${i.estimated_gains.traffic ? `<li>Trafic web : ${i.estimated_gains.traffic.min}% → ${i.estimated_gains.traffic.max}%</li>` : ""}
+              ${i.estimated_gains.conversion ? `<li>Conversion : ${i.estimated_gains.conversion.min}% → ${i.estimated_gains.conversion.max}%</li>` : ""}
+            </ul>
+          </div>
+        ` : ""}
+      </div>
+    `).join("")}
+
+    <!-- Section 3 : Plan d'accompagnement -->
+    <h2>3. Plan d'Accompagnement Détaillé</h2>
+    ${json.roadmap && json.roadmap.phases ? json.roadmap.phases.map((p: any) => `
+      <div class="phase-card">
+        <div class="phase-title">${p.name || "Phase"} <span class="badge">${p.weeks || 0} semaines</span></div>
+        ${p.objectives && p.objectives.length > 0 ? `
+          <div style="margin:8px 0">
+            <strong>🎯 Objectifs :</strong>
+            <ul>${p.objectives.map((o: string) => `<li>${o}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${p.deliverables && p.deliverables.length > 0 ? `
+          <div style="margin:8px 0">
+            <strong>📦 Livrables :</strong>
+            <ul>${p.deliverables.map((d: string) => `<li>${d}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${p.success_criteria && p.success_criteria.length > 0 ? `
+          <div style="margin:8px 0">
+            <strong>✅ Critères de succès :</strong>
+            <ul>${p.success_criteria.map((s: string) => `<li>${s}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${p.risks && p.risks.length > 0 ? `
+          <div style="margin:8px 0">
+            <strong>⚠️ Risques :</strong>
+            <ul>${p.risks.map((r: string) => `<li>${r}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+        ${p.mitigations && p.mitigations.length > 0 ? `
+          <div style="margin:8px 0">
+            <strong>🛡️ Mitigations :</strong>
+            <ul>${p.mitigations.map((m: string) => `<li>${m}</li>`).join("")}</ul>
+          </div>
+        ` : ""}
+      </div>
+    `).join("") : "<p>Plan détaillé à préciser en atelier de cadrage.</p>"}
+
+    ${json.roadmap && json.roadmap.gantt && json.roadmap.gantt.length > 0 ? `
+      <div class="kpi-card" style="margin-top:24px">
+        <h3>📅 Planning Gantt (JSON)</h3>
+        <pre style="background:#F8FAFC;padding:12px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(json.roadmap.gantt, null, 2)}</pre>
+      </div>
+    ` : ""}
+
+    <!-- Section 4 : ROI Global -->
+    <h2>4. ROI Global & Impact Business</h2>
+    <div class="roi-box">
+      <div style="font-size:14px;font-weight:600;color:#111">Gains Globaux Estimés (Prudence)</div>
+      <div class="roi-number">
+        ${json.roi_summary?.global_gain_pct?.min ?? 0}% → ${json.roi_summary?.global_gain_pct?.max ?? 0}%
+      </div>
+      <div style="font-size:14px;color:#4B5563;font-style:italic">
+        ${json.roi_summary?.key_message ?? "Des gains mesurables, vite, sans casser l'existant."}
       </div>
     </div>
 
-    <div class="foot">© ${new Date().getFullYear()} ${brand.name}. Document confidentiel — Ne pas diffuser.</div>
+    <!-- Footer -->
+    <div class="footer">
+      © ${new Date().getFullYear()} IMOTION • Intégrateur Apple & IA<br>
+      Document confidentiel — Ne pas diffuser sans autorisation
+    </div>
   </div>
-</body></html>`;
-}
+</body>
+</html>`;
 
-function gainLine(label: string, v?: { min: number; max: number }) {
-  if (!v || (v.min === 0 && v.max === 0)) return "";
-  return `<li>${label} : <b>${v.min}% → ${v.max}%</b></li>`;
-}
+    // Enregistrement en base
+    await supabase
+      .from("audits")
+      .update({ 
+        generated_report: html,
+        report_generated_at: new Date().toISOString(),
+        global_score: weightedScore
+      })
+      .eq("id", auditId);
 
-function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]!));
-}
+    console.log("[generate-audit-report v3.0] Report saved successfully");
+
+    return new Response(html, { 
+      status: 200, 
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } 
+    });
+    
+  } catch (e: any) {
+    console.error("[generate-audit-report v3.0] Error:", e);
+    return new Response(JSON.stringify({ error: e.message || "Unexpected error" }), { 
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
