@@ -16,14 +16,43 @@ export default function AdminInterventions() {
         .from("interventions")
         .select(`
           *,
-          profiles!interventions_client_id_fkey(full_name),
-          companies(name),
-          technician:profiles!interventions_technician_id_fkey(full_name)
+          companies(name)
         `)
         .order("created_at", { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error loading interventions:", error);
+        throw error;
+      }
+      
+      // Manually join with profiles for client and technician
+      const interventionsWithProfiles = await Promise.all((data || []).map(async (intervention) => {
+        const result: any = { ...intervention };
+        
+        // Load client profile
+        if (intervention.client_id) {
+          const { data: clientProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', intervention.client_id)
+            .maybeSingle();
+          result.client_profile = clientProfile;
+        }
+        
+        // Load technician profile
+        if (intervention.technician_id) {
+          const { data: techProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', intervention.technician_id)
+            .maybeSingle();
+          result.technician_profile = techProfile;
+        }
+        
+        return result;
+      }));
+      
+      return interventionsWithProfiles;
     },
   });
 
@@ -88,14 +117,14 @@ export default function AdminInterventions() {
                 <div className="flex items-center gap-4 text-sm text-text-muted">
                   <span className="flex items-center gap-1">
                     <User className="h-4 w-4" />
-                    {intervention.profiles?.full_name || "—"}
+                    {intervention.client_profile?.full_name || "—"}
                   </span>
                   {intervention.companies?.name && (
                     <span>• {intervention.companies.name}</span>
                   )}
-                  {intervention.technician?.full_name && (
+                  {intervention.technician_profile?.full_name && (
                     <span className="flex items-center gap-1">
-                      • Technicien: {intervention.technician.full_name}
+                      • Technicien: {intervention.technician_profile.full_name}
                     </span>
                   )}
                 </div>

@@ -13,13 +13,29 @@ export default function AdminFollowups() {
         .from("followups")
         .select(`
           *,
-          profiles!followups_client_id_fkey(full_name),
-          interventions!followups_project_id_fkey(title)
+          interventions(title)
         `)
         .order("next_action_date", { ascending: true, nullsFirst: false });
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error loading followups:", error);
+        throw error;
+      }
+      
+      // Manually join with profiles via client_id
+      const followupsWithProfiles = await Promise.all((data || []).map(async (followup) => {
+        if (!followup.client_id) return { ...followup, client_profile: null };
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', followup.client_id)
+          .maybeSingle();
+        
+        return { ...followup, client_profile: profile };
+      }));
+      
+      return followupsWithProfiles;
     },
   });
 
@@ -67,7 +83,7 @@ export default function AdminFollowups() {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-lg font-semibold">
-                    {followup.profiles?.full_name || "Client"}
+                    {followup.client_profile?.full_name || "Client"}
                   </h3>
                   {getTypeBadge(followup.type)}
                 </div>

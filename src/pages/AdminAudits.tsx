@@ -17,7 +17,7 @@ export default function AdminAudits() {
         .from("audits")
         .select(`
           *,
-          companies(name)
+          audited_companies(name)
         `)
         .order("created_at", { ascending: false });
       
@@ -112,8 +112,8 @@ export default function AdminAudits() {
                 </td>
                 <td className="px-6 py-4">
                   <div>{audit.creator?.full_name || "—"}</div>
-                  {audit.companies?.name && (
-                    <div className="text-sm text-text-muted">{audit.companies.name}</div>
+                  {audit.audited_companies?.name && (
+                    <div className="text-sm text-text-muted">{audit.audited_companies.name}</div>
                   )}
                 </td>
                 <td className="px-6 py-4">{getStatusBadge(audit.status)}</td>
