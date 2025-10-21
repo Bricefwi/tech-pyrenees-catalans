@@ -69,11 +69,11 @@ export default function Header() {
           <NavLink to="/" end className={navLinkClass}>
             Accueil
           </NavLink>
-          <NavLink to="/audit" className={navLinkClass}>
-            Audit
-          </NavLink>
           <NavLink to="/solutions-ia" className={navLinkClass}>
             Solutions IA
+          </NavLink>
+          <NavLink to="/audit" className={navLinkClass}>
+            Audit
           </NavLink>
           {isAdmin && (
             <>
@@ -126,11 +126,11 @@ export default function Header() {
               <NavLink to="/" end className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                 Accueil
               </NavLink>
-              <NavLink to="/audit" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
-                Audit
-              </NavLink>
               <NavLink to="/solutions-ia" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
                 Solutions IA
+              </NavLink>
+              <NavLink to="/audit" className={navLinkClass} onClick={() => setMobileMenuOpen(false)}>
+                Audit
               </NavLink>
               {isAdmin && (
                 <>

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Services from "@/components/Services";
+import SolutionsIAPreview from "@/components/SolutionsIAPreview";
 import ZoneIntervention from "@/components/ZoneIntervention";
 import ContactDiagnostic from "@/components/ContactDiagnostic";
 
@@ -49,6 +50,7 @@ const Index = () => {
         </section>
 
         <Services />
+        <SolutionsIAPreview />
         <ZoneIntervention />
         <ContactDiagnostic />
       </main>
