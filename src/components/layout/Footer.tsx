@@ -5,7 +5,7 @@ import logoImotion from "@/assets/logo-imotion.png";
 export default function Footer() {
   return (
     <footer className="mt-16 border-t border-surface-border bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-10 grid gap-10 md:grid-cols-3">
+      <div className="mx-auto max-w-7xl px-4 py-10 grid gap-10 md:grid-cols-4">
         <div className="space-y-3">
           <img src={logoImotion} className="h-20 w-auto rounded-lg shadow-md border border-surface-border bg-white p-3" alt="IMOTION" />
           <p className="text-sm text-text-muted">
@@ -39,6 +39,32 @@ export default function Footer() {
             <li>
               <Link to="/contact" className="hover:text-brand-primary transition-colors">
                 Contact
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div className="text-sm">
+          <h3 className="font-semibold mb-3 text-text">Informations légales</h3>
+          <ul className="space-y-2 text-text-muted">
+            <li>
+              <Link to="/mentions-legales" className="hover:text-brand-primary transition-colors">
+                Mentions légales
+              </Link>
+            </li>
+            <li>
+              <Link to="/rgpd" className="hover:text-brand-primary transition-colors">
+                RGPD & Confidentialité
+              </Link>
+            </li>
+            <li>
+              <Link to="/cgu" className="hover:text-brand-primary transition-colors">
+                CGU
+              </Link>
+            </li>
+            <li>
+              <Link to="/cgv" className="hover:text-brand-primary transition-colors">
+                CGV
               </Link>
             </li>
           </ul>

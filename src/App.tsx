@@ -30,7 +30,10 @@ import AdminIntervention from "./pages/AdminIntervention";
 import FAQPage from "./pages/FAQ";
 import CGU from "./pages/CGU";
 import CGV from "./pages/CGV";
+import RGPD from "./pages/RGPD";
+import MentionsLegales from "./pages/MentionsLegales";
 import Brand from "./pages/Brand";
+import CookieConsent from "./components/CookieConsent";
 import AdminAudits from "./pages/AdminAudits";
 import AdminQuotes from "./pages/AdminQuotes";
 import AdminInterventions from "./pages/AdminInterventions";
@@ -77,6 +80,8 @@ const App = () => (
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/cgu" element={<CGU />} />
               <Route path="/cgv" element={<CGV />} />
+              <Route path="/rgpd" element={<RGPD />} />
+              <Route path="/mentions-legales" element={<MentionsLegales />} />
               <Route path="/brand" element={<Brand />} />
               <Route path="/analyze" element={<AnalyzeSpecs />} />
               <Route path="/analyses-history" element={<AnalysesHistory />} />
@@ -106,6 +111,7 @@ const App = () => (
             </Routes>
           </main>
           <Footer />
+          <CookieConsent />
         </div>
       </BrowserRouter>
     </TooltipProvider>
